@@ -24,34 +24,30 @@ object AppModule {
     
     fun provideWebSocketManager(): WebSocketManager = WebSocketManager()
     
-    private fun provideOkHttpClient(tokenManager: TokenManager): OkHttpClient {
-        return OkHttpClient.Builder()
-            .addInterceptor(TokenInterceptor(tokenManager))
+    private val okHttpClient: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor(TokenInterceptor())
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .build()
     }
     
-    private fun provideRetrofit(tokenManager: TokenManager): Retrofit {
-        return Retrofit.Builder()
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(provideOkHttpClient(tokenManager))
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
     
-    fun provideAuthApi(tokenManager: TokenManager): AuthApi {
-        return provideRetrofit(tokenManager).create(AuthApi::class.java)
-    }
+    fun provideAuthApi(): AuthApi = retrofit.create(AuthApi::class.java)
     
-    fun provideSeendApi(tokenManager: TokenManager): SeendApi {
-        return provideRetrofit(tokenManager).create(SeendApi::class.java)
-    }
+    fun provideSeendApi(): SeendApi = retrofit.create(SeendApi::class.java)
     
-    fun provideAuthRepository(authApi: AuthApi): AuthRepository = AuthRepository(authApi)
+    fun provideAuthRepository(): AuthRepository = AuthRepository(provideAuthApi())
     
-    fun provideUserRepository(seendApi: SeendApi): UserRepository = UserRepository(seendApi)
+    fun provideUserRepository(): UserRepository = UserRepository(provideSeendApi())
     
-    fun provideChatRepository(seendApi: SeendApi): ChatRepository = ChatRepository(seendApi)
+    fun provideChatRepository(): ChatRepository = ChatRepository(provideSeendApi())
 }

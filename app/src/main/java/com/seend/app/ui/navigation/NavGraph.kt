@@ -1,21 +1,15 @@
 package com.seend.app.ui.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.seend.app.data.api.WebSocketManager
-import com.seend.app.data.repository.AuthRepository
-import com.seend.app.data.repository.ChatRepository
-import com.seend.app.data.repository.UserRepository
 import com.seend.app.di.AppModule
 import com.seend.app.ui.auth.*
 import com.seend.app.ui.chats.ChatsScreen
-import com.seend.app.util.TokenManager
+import com.seend.app.ui.chats.ChatsViewModel
 
 object Routes {
     const val WELCOME = "welcome"
@@ -27,20 +21,12 @@ object Routes {
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
-    val tokenManager = remember { TokenManager }
     
-    val authApi = remember { AppModule.provideAuthApi(tokenManager) }
-    val seendApi = remember { AppModule.provideSeendApi(tokenManager) }
-    val authRepository = remember { AppModule.provideAuthRepository(authApi) }
+    val authRepository = remember { AppModule.provideAuthRepository() }
     val webSocketManager = remember { AppModule.provideWebSocketManager() }
     
     val authViewModel: AuthViewModel = viewModel(
-        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return AuthViewModel(authRepository, webSocketManager) as T
-            }
-        }
+        factory = AuthViewModelFactory(authRepository, webSocketManager)
     )
     
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
@@ -53,9 +39,7 @@ fun NavGraph() {
     ) {
         composable(Routes.WELCOME) {
             WelcomeScreen(
-                onContinueClick = {
-                    navController.navigate(Routes.LOGIN)
-                }
+                onContinueClick = { navController.navigate(Routes.LOGIN) }
             )
         }
         
@@ -64,9 +48,11 @@ fun NavGraph() {
             val errorMessage by authViewModel.errorMessage.collectAsState()
             val loginSuccess by authViewModel.loginSuccess.collectAsState()
             
-            if (loginSuccess) {
-                navController.navigate(Routes.CHATS) {
-                    popUpTo(0) { inclusive = true }
+            LaunchedEffect(loginSuccess) {
+                if (loginSuccess) {
+                    navController.navigate(Routes.CHATS) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             }
             
@@ -74,9 +60,7 @@ fun NavGraph() {
                 onLoginClick = { username, password ->
                     authViewModel.login(username, password)
                 },
-                onRegisterClick = {
-                    navController.navigate(Routes.REGISTER)
-                },
+                onRegisterClick = { navController.navigate(Routes.REGISTER) },
                 isLoading = isLoading,
                 errorMessage = errorMessage
             )
@@ -87,9 +71,11 @@ fun NavGraph() {
             val errorMessage by authViewModel.errorMessage.collectAsState()
             val loginSuccess by authViewModel.loginSuccess.collectAsState()
             
-            if (loginSuccess) {
-                navController.navigate(Routes.CHATS) {
-                    popUpTo(0) { inclusive = true }
+            LaunchedEffect(loginSuccess) {
+                if (loginSuccess) {
+                    navController.navigate(Routes.CHATS) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             }
             
@@ -97,22 +83,32 @@ fun NavGraph() {
                 onRegisterClick = { name, username, password, photoUri ->
                     authViewModel.register(name, username, password, photoUri)
                 },
-                onBackClick = {
-                    navController.popBackStack()
-                },
+                onBackClick = { navController.popBackStack() },
                 isLoading = isLoading,
                 errorMessage = errorMessage
             )
         }
         
         composable(Routes.CHATS) {
+            val chatRepository = remember { AppModule.provideChatRepository() }
+            val chatsViewModel: ChatsViewModel = viewModel(
+                factory = ChatsViewModelFactory(chatRepository, webSocketManager)
+            )
+            
             ChatsScreen(
+                onChatClick = { chatId, username ->
+                    // Navegar al chat (próximamente)
+                },
+                onNewChatClick = {
+                    // Navegar a lista de usuarios (próximamente)
+                },
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate(Routes.WELCOME) {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                viewModel = chatsViewModel
             )
         }
     }

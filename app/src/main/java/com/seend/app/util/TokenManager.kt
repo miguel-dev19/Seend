@@ -1,66 +1,57 @@
 package com.seend.app.util
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import android.content.SharedPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "seend_prefs")
-
 object TokenManager {
-    private val TOKEN_KEY = stringPreferencesKey("jwt_token")
-    private val USERNAME_KEY = stringPreferencesKey("username")
-    private val USER_ID_KEY = stringPreferencesKey("user_id")
     
-    private lateinit var context: Context
+    private const val PREFS_NAME = "seend_prefs"
+    private const val TOKEN_KEY = "jwt_token"
+    private const val USERNAME_KEY = "username"
+    private const val USER_ID_KEY = "user_id"
+    
+    private lateinit var prefs: SharedPreferences
+    
+    private val _tokenFlow = MutableStateFlow<String?>(null)
+    val tokenFlow: Flow<String?> = _tokenFlow
     
     fun init(context: Context) {
-        this.context = context
+        prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        _tokenFlow.value = prefs.getString(TOKEN_KEY, null)
     }
     
-    suspend fun saveToken(token: String) {
-        context.dataStore.edit { preferences ->
-            preferences[TOKEN_KEY] = token
-        }
+    fun saveToken(token: String) {
+        prefs.edit().putString(TOKEN_KEY, token).apply()
+        _tokenFlow.value = token
     }
     
-    suspend fun saveUsername(username: String) {
-        context.dataStore.edit { preferences ->
-            preferences[USERNAME_KEY] = username
-        }
+    fun saveUsername(username: String) {
+        prefs.edit().putString(USERNAME_KEY, username).apply()
     }
     
-    suspend fun saveUserId(userId: String) {
-        context.dataStore.edit { preferences ->
-            preferences[USER_ID_KEY] = userId
-        }
+    fun saveUserId(userId: String) {
+        prefs.edit().putString(USER_ID_KEY, userId).apply()
     }
     
-    fun getToken(): Flow<String?> {
-        return context.dataStore.data.map { preferences ->
-            preferences[TOKEN_KEY]
-        }
+    fun getToken(): Flow<String?> = _tokenFlow
+    
+    fun getTokenOnce(): String? {
+        return prefs.getString(TOKEN_KEY, null)
     }
     
-    fun getUsername(): Flow<String?> {
-        return context.dataStore.data.map { preferences ->
-            preferences[USERNAME_KEY]
-        }
+    fun getUsername(): String? {
+        return prefs.getString(USERNAME_KEY, null)
     }
     
-    fun getUserId(): Flow<String?> {
-        return context.dataStore.data.map { preferences ->
-            preferences[USER_ID_KEY]
-        }
+    fun getUserId(): String? {
+        return prefs.getString(USER_ID_KEY, null)
     }
     
-    suspend fun clearAll() {
-        context.dataStore.edit { preferences ->
-            preferences.clear()
-        }
+    fun clearAll() {
+        prefs.edit().clear().apply()
+        _tokenFlow.value = null
     }
 }
