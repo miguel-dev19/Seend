@@ -5,11 +5,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.seend.app.data.api.WebSocketManager
 import com.seend.app.di.AppModule
 import com.seend.app.ui.auth.*
-import com.seend.app.ui.chats.ChatsScreen
-import com.seend.app.ui.chats.ChatsViewModel
+import com.seend.app.ui.chats.*
 
 object Routes {
     const val WELCOME = "welcome"

@@ -15,6 +15,6 @@ class ChatsViewModelFactory(
         if (modelClass.isAssignableFrom(ChatsViewModel::class.java)) {
             return ChatsViewModel(chatRepository, webSocketManager) as T
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
+        throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
 }
