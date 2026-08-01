@@ -1,6 +1,15 @@
 package com.seend.app.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -10,6 +19,7 @@ import androidx.navigation.navArgument
 import com.seend.app.di.AppModule
 import com.seend.app.ui.auth.*
 import com.seend.app.ui.chats.*
+import com.seend.app.ui.theme.*
 import com.seend.app.ui.users.*
 
 object Routes {
@@ -145,7 +155,6 @@ fun NavGraph() {
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             val username = backStackEntry.arguments?.getString("username") ?: ""
             
-            // Placeholder para ChatDetailScreen
             ChatDetailPlaceholder(
                 chatId = chatId,
                 username = username,
@@ -155,54 +164,41 @@ fun NavGraph() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailPlaceholder(
     chatId: String,
     username: String,
     onBackClick: () -> Unit
 ) {
-    // Temporal hasta crear ChatDetailScreen
-    androidx.compose.material3.Scaffold(
+    Scaffold(
         topBar = {
-            androidx.compose.material3.ExperimentalMaterial3Api::class
-            @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-            androidx.compose.material3.TopAppBar(
-                title = { androidx.compose.material3.Text(username) },
+            TopAppBar(
+                title = { Text(username) },
                 navigationIcon = {
-                    androidx.compose.material3.IconButton(onClick = onBackClick) {
-                        androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Default.ArrowBack,
-                            "Volver"
-                        )
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, "Volver")
                     }
                 },
-                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = com.seend.app.ui.theme.PrimaryBlue,
-                    titleContentColor = androidx.compose.ui.graphics.Color.White,
-                    navigationIconContentColor = androidx.compose.ui.graphics.Color.White
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PrimaryBlue,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         }
     ) { padding ->
-        androidx.compose.foundation.layout.Box(
-            modifier = androidx.compose.ui.Modifier
+        Box(
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            contentAlignment = androidx.compose.ui.Alignment.Center
+            contentAlignment = Alignment.Center
         ) {
-            androidx.compose.material3.Text(
+            Text(
                 "Chat con $username\n(próximamente)",
-                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                color = com.seend.app.ui.theme.Gray
+                style = MaterialTheme.typography.bodyLarge,
+                color = Gray
             )
         }
     }
 }
-
-private fun androidx.compose.ui.Modifier.fillMaxSize() = this.then(
-    androidx.compose.foundation.layout.fillMaxSize()
-)
-
-private fun androidx.compose.ui.Modifier.padding(padding: androidx.compose.foundation.layout.PaddingValues) = this.then(
-    androidx.compose.foundation.layout.padding(padding)
-)

@@ -25,7 +25,7 @@ class UsersViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(UsersUiState())
-    val uiState: StateFlow<UsersUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<UsersUiState> = _uiState
 
     init {
         loadUsers()
