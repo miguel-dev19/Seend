@@ -1,18 +1,19 @@
 package com.seend.app.ui.auth
 
+import android.content.Context
 import android.net.Uri
-import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.seend.app.data.api.S3Uploader
 import com.seend.app.data.api.WebSocketManager
 import com.seend.app.data.model.AuthResponse
 import com.seend.app.data.repository.AuthRepository
 import com.seend.app.util.TokenManager
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.io.ByteArrayOutputStream
 
 class AuthViewModel(
     private val authRepository: AuthRepository,
@@ -31,14 +32,58 @@ class AuthViewModel(
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
+    private val _usernameStatus = MutableStateFlow<UsernameStatus>(UsernameStatus.Idle)
+    val usernameStatus: StateFlow<UsernameStatus> = _usernameStatus
+
+    private val _isCheckingUsername = MutableStateFlow(false)
+    val isCheckingUsername: StateFlow<Boolean> = _isCheckingUsername
+
+    private var checkUsernameJob: Job? = null
+    
+    // Contexto para el uploader (se asigna desde la pantalla)
+    var appContext: Context? = null
+
     init {
         checkLoginStatus()
     }
 
     private fun checkLoginStatus() {
         viewModelScope.launch {
-            val token = TokenManager.getToken().first()
+            val token = TokenManager.getTokenOnce()
             _isLoggedIn.value = token != null
+        }
+    }
+
+    fun checkUsername(username: String) {
+        checkUsernameJob?.cancel()
+        
+        if (username.length < 3) {
+            _usernameStatus.value = UsernameStatus.Idle
+            _isCheckingUsername.value = false
+            return
+        }
+
+        _isCheckingUsername.value = true
+        
+        checkUsernameJob = viewModelScope.launch {
+            delay(500)
+            
+            val result = authRepository.checkUsername(username)
+            
+            result.fold(
+                onSuccess = { response ->
+                    _usernameStatus.value = if (response.available) {
+                        UsernameStatus.Available(response.message)
+                    } else {
+                        UsernameStatus.Unavailable(response.message)
+                    }
+                },
+                onFailure = {
+                    _usernameStatus.value = UsernameStatus.Error("Error al verificar")
+                }
+            )
+            
+            _isCheckingUsername.value = false
         }
     }
 
@@ -76,17 +121,14 @@ class AuthViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-
-            val photoBase64 = photoUri?.let { uri ->
-                try {
-                    val context = TokenManager.javaClass.classLoader?.let { 
-                        // Necesitamos el contexto, lo obtenemos del TokenManager
-                        null 
-                    }
-                    null // Por ahora sin foto, necesitamos acceso al ContentResolver
-                } catch (e: Exception) {
-                    null
-                }
+            
+            // Si hay foto, subirla a S3 primero
+            var photoBase64: String? = null
+            val context = appContext
+            
+            if (photoUri != null && context != null) {
+                val uploadResult = S3Uploader.uploadPhoto(context, photoUri)
+                photoBase64 = uploadResult.getOrNull() // URL de S3
             }
 
             val result = authRepository.register(username, password, photoBase64)
@@ -109,7 +151,6 @@ class AuthViewModel(
         TokenManager.saveUsername(authResponse.user.username)
         TokenManager.saveUserId(authResponse.user.id)
         
-        // Conectar WebSocket
         webSocketManager.connect(authResponse.token)
         
         _loginSuccess.value = true
@@ -128,4 +169,11 @@ class AuthViewModel(
             _loginSuccess.value = false
         }
     }
+}
+
+sealed class UsernameStatus {
+    object Idle : UsernameStatus()
+    data class Available(val message: String) : UsernameStatus()
+    data class Unavailable(val message: String) : UsernameStatus()
+    data class Error(val message: String) : UsernameStatus()
 }

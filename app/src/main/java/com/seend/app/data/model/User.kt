@@ -31,3 +31,9 @@ data class LoginRequest(
     val username: String,
     val password: String
 )
+
+data class CheckUsernameResponse(
+    val username: String,
+    val available: Boolean,
+    val message: String
+)

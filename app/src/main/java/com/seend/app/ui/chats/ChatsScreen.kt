@@ -108,7 +108,7 @@ fun ChatsScreen(
                         isTyping = uiState.typingUsers[chat.otherUser.id] == true,
                         onClick = { onChatClick(chat.id, chat.otherUser.username) }
                     )
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(horizontal = 72.dp),
                         color = LightGray,
                         thickness = 0.5.dp
