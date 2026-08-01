@@ -1,6 +1,15 @@
 package com.seend.app.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -10,6 +19,7 @@ import androidx.navigation.navArgument
 import com.seend.app.di.AppModule
 import com.seend.app.ui.auth.*
 import com.seend.app.ui.chats.*
+import com.seend.app.ui.theme.*
 import com.seend.app.ui.users.*
 
 object Routes {
@@ -177,51 +187,48 @@ fun NavGraph() {
             )
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            
-            // Placeholder para perfil (próximamente)
-            androidx.compose.material3.Scaffold(
-                topBar = {
-                    androidx.compose.material3.ExperimentalMaterial3Api::class
-                    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-                    androidx.compose.material3.TopAppBar(
-                        title = { androidx.compose.material3.Text("Perfil") },
-                        navigationIcon = {
-                            androidx.compose.material3.IconButton(onClick = { navController.popBackStack() }) {
-                                androidx.compose.material3.Icon(
-                                    androidx.compose.material.icons.Icons.Default.ArrowBack,
-                                    "Volver"
-                                )
-                            }
-                        },
-                        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                            containerColor = com.seend.app.ui.theme.PrimaryBlue,
-                            titleContentColor = androidx.compose.ui.graphics.Color.White,
-                            navigationIconContentColor = androidx.compose.ui.graphics.Color.White
-                        )
-                    )
-                }
-            ) { padding ->
-                androidx.compose.foundation.layout.Box(
-                    modifier = androidx.compose.ui.Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
-                ) {
-                    androidx.compose.material3.Text(
-                        "Perfil de usuario\n(próximamente)",
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
-                        color = com.seend.app.ui.theme.Gray
-                    )
-                }
-            }
+            ProfilePlaceholder(
+                userId = userId,
+                onBackClick = { navController.popBackStack() }
+            )
         }
     }
 }
 
-private fun androidx.compose.ui.Modifier.fillMaxSize() = this.then(
-    androidx.compose.foundation.layout.fillMaxSize()
-)
-
-private fun androidx.compose.ui.Modifier.padding(padding: androidx.compose.foundation.layout.PaddingValues) = this.then(
-    androidx.compose.foundation.layout.padding(padding)
-)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfilePlaceholder(
+    userId: String,
+    onBackClick: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Perfil") },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.Default.ArrowBack, "Volver")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = PrimaryBlue,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Perfil de usuario\n(próximamente)",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Gray
+            )
+        }
+    }
+}
