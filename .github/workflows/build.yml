@@ -1,34 +1,83 @@
-name: Build Seend APK
+name: Build and Release APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout
+    - name: Checkout código
       uses: actions/checkout@v4
-    
-    - name: Set up JDK 17
+
+    - name: Setup Java 17
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
         distribution: 'temurin'
-    
+        java-version: '17'
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
       with:
         gradle-version: 8.2
-    
-    - name: Build with Gradle
+
+    - name: Compilar APK Debug
       run: gradle assembleDebug
-    
-    - name: Upload APK
+
+    - name: Subir APK como artifact
       uses: actions/upload-artifact@v4
       with:
         name: Seend-APK
         path: app/build/outputs/apk/debug/app-debug.apk
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+    - name: Descargar APK
+      uses: actions/download-artifact@v4
+      with:
+        name: Seend-APK
+
+    - name: Obtener fecha
+      id: version
+      run: |
+        echo "DATE=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
+    
+    - name: Crear Release en GitHub
+      uses: softprops/action-gh-release@v2
+      with:
+        files: app-debug.apk
+        tag_name: v0.1
+        name: "Seend v0.1 - Beta"
+        body: |
+          ## 🚀 Seend v0.1 - Primera versión beta
+          
+          ### ✅ Funcionalidades:
+          - 🔐 Registro e inicio de sesión con JWT
+          - 💬 Chat en tiempo real por WebSocket
+          - ✓✓ Estados de mensajes (enviado, entregado, leído)
+          - ✍️ Indicador 'Escribiendo...'
+          - 🔍 Búsqueda de usuarios
+          - 👤 Perfil de usuario
+          - 📸 Fotos de perfil por S3 (plan ToDus)
+          - 📴 Modo offline con Room (SQLite)
+          - 🔄 Sincronización automática
+          
+          ### 📡 Servidor:
+          https://seend-server.onrender.com
+          
+          ### 📱 Build: ${{ steps.version.outputs.DATE }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
