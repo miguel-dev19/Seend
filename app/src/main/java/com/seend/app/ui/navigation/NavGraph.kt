@@ -1,15 +1,6 @@
 package com.seend.app.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -19,7 +10,6 @@ import androidx.navigation.navArgument
 import com.seend.app.di.AppModule
 import com.seend.app.ui.auth.*
 import com.seend.app.ui.chats.*
-import com.seend.app.ui.theme.*
 import com.seend.app.ui.users.*
 
 object Routes {
@@ -29,8 +19,10 @@ object Routes {
     const val CHATS = "chats"
     const val USERS = "users"
     const val CHAT_DETAIL = "chat_detail/{chatId}/{username}"
+    const val PROFILE = "profile/{userId}"
     
     fun chatDetail(chatId: String, username: String) = "chat_detail/$chatId/$username"
+    fun profile(userId: String) = "profile/$userId"
 }
 
 @Composable
@@ -155,50 +147,81 @@ fun NavGraph() {
             val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
             val username = backStackEntry.arguments?.getString("username") ?: ""
             
-            ChatDetailPlaceholder(
+            val chatRepository = remember { AppModule.provideChatRepository() }
+            val userRepository = remember { AppModule.provideUserRepository() }
+            
+            val chatDetailViewModel: ChatDetailViewModel = viewModel(
+                factory = ChatDetailViewModelFactory(
+                    chatId = chatId,
+                    chatRepository = chatRepository,
+                    userRepository = userRepository,
+                    webSocketManager = webSocketManager
+                )
+            )
+            
+            ChatDetailScreen(
                 chatId = chatId,
                 username = username,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onProfileClick = { userId ->
+                    navController.navigate(Routes.profile(userId))
+                },
+                viewModel = chatDetailViewModel
             )
+        }
+        
+        composable(
+            route = Routes.PROFILE,
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            
+            // Placeholder para perfil (próximamente)
+            androidx.compose.material3.Scaffold(
+                topBar = {
+                    androidx.compose.material3.ExperimentalMaterial3Api::class
+                    @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+                    androidx.compose.material3.TopAppBar(
+                        title = { androidx.compose.material3.Text("Perfil") },
+                        navigationIcon = {
+                            androidx.compose.material3.IconButton(onClick = { navController.popBackStack() }) {
+                                androidx.compose.material3.Icon(
+                                    androidx.compose.material.icons.Icons.Default.ArrowBack,
+                                    "Volver"
+                                )
+                            }
+                        },
+                        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                            containerColor = com.seend.app.ui.theme.PrimaryBlue,
+                            titleContentColor = androidx.compose.ui.graphics.Color.White,
+                            navigationIconContentColor = androidx.compose.ui.graphics.Color.White
+                        )
+                    )
+                }
+            ) { padding ->
+                androidx.compose.foundation.layout.Box(
+                    modifier = androidx.compose.ui.Modifier
+                        .fillMaxSize()
+                        .padding(padding),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    androidx.compose.material3.Text(
+                        "Perfil de usuario\n(próximamente)",
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                        color = com.seend.app.ui.theme.Gray
+                    )
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChatDetailPlaceholder(
-    chatId: String,
-    username: String,
-    onBackClick: () -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(username) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = PrimaryBlue,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "Chat con $username\n(próximamente)",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Gray
-            )
-        }
-    }
-}
+private fun androidx.compose.ui.Modifier.fillMaxSize() = this.then(
+    androidx.compose.foundation.layout.fillMaxSize()
+)
+
+private fun androidx.compose.ui.Modifier.padding(padding: androidx.compose.foundation.layout.PaddingValues) = this.then(
+    androidx.compose.foundation.layout.padding(padding)
+)
