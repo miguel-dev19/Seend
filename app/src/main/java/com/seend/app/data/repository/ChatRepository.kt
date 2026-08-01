@@ -1,19 +1,43 @@
 package com.seend.app.data.repository
 
 import com.seend.app.data.api.SeendApi
+import com.seend.app.data.local.ChatEntity
+import com.seend.app.data.local.MessageEntity
+import com.seend.app.data.local.SeendDatabase
 import com.seend.app.data.model.Chat
 import com.seend.app.data.model.Message
+import com.seend.app.data.model.MessageStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
-class ChatRepository(private val api: SeendApi) {
+class ChatRepository(
+    private val api: SeendApi,
+    private val db: SeendDatabase
+) {
     
     suspend fun getChats(): Result<List<Chat>> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = api.getChats()
                 if (response.isSuccessful) {
-                    Result.success(response.body() ?: emptyList())
+                    val chats = response.body() ?: emptyList()
+                    // Guardar en Room
+                    val entities = chats.map { chat ->
+                        ChatEntity(
+                            id = chat.id,
+                            otherUserId = chat.otherUser.id,
+                            otherUsername = chat.otherUser.username,
+                            otherProfilePic = chat.otherUser.profilePic,
+                            lastMessage = chat.lastMessage,
+                            lastTime = chat.lastTime,
+                            unreadCount = chat.unreadCount,
+                            lastMsgStatus = chat.lastMsgStatus?.name
+                        )
+                    }
+                    db.chatDao().insertChats(entities)
+                    Result.success(chats)
                 } else {
                     Result.failure(Exception("Error: ${response.code()}"))
                 }
@@ -22,6 +46,8 @@ class ChatRepository(private val api: SeendApi) {
             }
         }
     }
+    
+    fun getChatsFlow(): Flow<List<ChatEntity>> = db.chatDao().getAllChats()
     
     suspend fun createOrGetChat(userId: String): Result<String> {
         return withContext(Dispatchers.IO) {
@@ -43,7 +69,20 @@ class ChatRepository(private val api: SeendApi) {
             try {
                 val response = api.getMessages(chatId)
                 if (response.isSuccessful) {
-                    Result.success(response.body() ?: emptyList())
+                    val messages = response.body() ?: emptyList()
+                    // Guardar en Room
+                    val entities = messages.map { msg ->
+                        MessageEntity(
+                            id = msg.id,
+                            chatId = msg.chatId,
+                            senderId = msg.senderId,
+                            content = msg.content,
+                            status = msg.status.name,
+                            createdAt = msg.createdAt
+                        )
+                    }
+                    db.messageDao().insertMessages(entities)
+                    Result.success(messages)
                 } else {
                     Result.failure(Exception("Error: ${response.code()}"))
                 }
@@ -52,4 +91,27 @@ class ChatRepository(private val api: SeendApi) {
             }
         }
     }
+    
+    fun getMessagesFlow(chatId: String): Flow<List<Message>> {
+        return db.messageDao().getMessagesByChatId(chatId).map { entities ->
+            entities.map { it.toModel() }
+        }
+    }
+    
+    suspend fun markChatAsRead(chatId: String) {
+        db.chatDao().markAsRead(chatId)
+    }
+    
+    suspend fun updateMessageStatus(messageId: String, status: String) {
+        db.messageDao().updateMessageStatus(messageId, status)
+    }
 }
+
+fun MessageEntity.toModel() = Message(
+    id = id,
+    chatId = chatId,
+    senderId = senderId,
+    content = content,
+    status = MessageStatus.valueOf(status),
+    createdAt = createdAt
+)
