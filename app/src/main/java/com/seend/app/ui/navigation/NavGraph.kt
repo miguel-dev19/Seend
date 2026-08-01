@@ -19,6 +19,7 @@ import androidx.navigation.navArgument
 import com.seend.app.di.AppModule
 import com.seend.app.ui.auth.*
 import com.seend.app.ui.chats.*
+import com.seend.app.ui.profile.*
 import com.seend.app.ui.theme.*
 import com.seend.app.ui.users.*
 
@@ -187,47 +188,19 @@ fun NavGraph() {
             )
         ) { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
-            ProfilePlaceholder(
-                userId = userId,
+            val userRepository = remember { AppModule.provideUserRepository() }
+            
+            val profileViewModel: ProfileViewModel = viewModel(
+                factory = ProfileViewModelFactory(userId, userRepository)
+            )
+            
+            val user by profileViewModel.user.collectAsState()
+            val isLoading by profileViewModel.isLoading.collectAsState()
+            
+            ProfileScreen(
+                user = user,
+                isLoading = isLoading,
                 onBackClick = { navController.popBackStack() }
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ProfilePlaceholder(
-    userId: String,
-    onBackClick: () -> Unit
-) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Perfil") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = PrimaryBlue,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                "Perfil de usuario\n(próximamente)",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Gray
             )
         }
     }
