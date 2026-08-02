@@ -26,7 +26,6 @@ import com.seend.app.util.formatTime
 @Composable
 fun ChatItem(
     chat: Chat,
-    isTyping: Boolean = false,
     onClick: () -> Unit
 ) {
     Row(
@@ -80,37 +79,23 @@ fun ChatItem(
                 color = DarkGray
             )
             
-            if (isTyping) {
-                Text(
-                    text = "escribiendo...",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = OnlineGreen,
-                    fontWeight = FontWeight.Medium
-                )
-            } else if (chat.lastMessage != null) {
+            if (chat.lastMessage != null) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Icono de estado del mensaje
                     when (chat.lastMsgStatus) {
                         MessageStatus.SENT -> Icon(
-                            Icons.Default.Check,
-                            contentDescription = "Enviado",
-                            modifier = Modifier.size(14.dp),
-                            tint = Gray
+                            Icons.Default.Check, "Enviado",
+                            modifier = Modifier.size(14.dp), tint = Gray
                         )
                         MessageStatus.DELIVERED -> Icon(
-                            Icons.Default.DoneAll,
-                            contentDescription = "Entregado",
-                            modifier = Modifier.size(14.dp),
-                            tint = Gray
+                            Icons.Default.DoneAll, "Entregado",
+                            modifier = Modifier.size(14.dp), tint = Gray
                         )
                         MessageStatus.READ -> Icon(
-                            Icons.Default.DoneAll,
-                            contentDescription = "Leído",
-                            modifier = Modifier.size(14.dp),
-                            tint = ReadBlue
+                            Icons.Default.DoneAll, "Leído",
+                            modifier = Modifier.size(14.dp), tint = ReadBlue
                         )
                         null -> {}
                     }

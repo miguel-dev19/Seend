@@ -19,9 +19,9 @@ data class ChatsUiState(
 )
 
 enum class ConnectionStatus(val label: String) {
-    ESPERANDO_RED("Esperando red"),
-    CONECTANDO("Conectando"),
-    ACTUALIZANDO("Actualizando"),
+    ESPERANDO_RED("Esperando red..."),
+    CONECTANDO("Conectando..."),
+    ACTUALIZANDO("Actualizando..."),
     CONECTADO("Seend")
 }
 

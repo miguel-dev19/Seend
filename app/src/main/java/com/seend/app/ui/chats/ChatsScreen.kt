@@ -23,7 +23,6 @@ import com.seend.app.ui.theme.*
 fun ChatsScreen(
     onChatClick: (String, String) -> Unit,
     onNewChatClick: () -> Unit,
-    onLogout: () -> Unit,
     viewModel: ChatsViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -32,42 +31,15 @@ fun ChatsScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    when (uiState.connectionStatus) {
-                                        ConnectionStatus.ESPERANDO_RED -> Color(0xFFFF9800)
-                                        ConnectionStatus.CONECTANDO -> Color(0xFFFFEB3B)
-                                        ConnectionStatus.ACTUALIZANDO -> Color(0xFF2196F3)
-                                        ConnectionStatus.CONECTADO -> OnlineGreen
-                                    }
-                                )
-                        )
-                        Text(
-                            text = uiState.connectionStatus.label,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshChats() }) {
-                        Icon(Icons.Default.Refresh, "Actualizar")
-                    }
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.Default.Logout, "Cerrar sesión")
-                    }
+                    Text(
+                        text = uiState.connectionStatus.label,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = PrimaryBlue,
-                    titleContentColor = Color.White,
-                    actionIconContentColor = Color.White
+                    titleContentColor = Color.White
                 )
             )
         },
@@ -105,7 +77,6 @@ fun ChatsScreen(
                 items(uiState.chats) { chat ->
                     ChatItem(
                         chat = chat,
-                        isTyping = uiState.typingUsers[chat.otherUser.id] == true,
                         onClick = { onChatClick(chat.id, chat.otherUser.username) }
                     )
                     Divider(

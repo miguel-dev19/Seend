@@ -25,7 +25,6 @@ import com.seend.app.data.model.Message
 import com.seend.app.data.model.MessageStatus
 import com.seend.app.ui.theme.*
 import com.seend.app.util.formatTime
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,9 +38,7 @@ fun ChatDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
     
-    // Scroll al último mensaje cuando hay nuevos
     LaunchedEffect(uiState.messages.size) {
         if (uiState.messages.isNotEmpty()) {
             listState.animateScrollToItem(uiState.messages.size - 1)
@@ -63,7 +60,6 @@ fun ChatDetailScreen(
                         },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Avatar
                         Box(modifier = Modifier.size(40.dp)) {
                             if (uiState.otherUser?.profilePic?.isNotEmpty() == true) {
                                 AsyncImage(
@@ -95,7 +91,6 @@ fun ChatDetailScreen(
                         
                         Spacer(modifier = Modifier.width(12.dp))
                         
-                        // Nombre y estado
                         Column {
                             Text(
                                 text = username,
@@ -108,7 +103,7 @@ fun ChatDetailScreen(
                                     uiState.isTyping -> "Escribiendo..."
                                     uiState.otherUser?.isOnline == true -> "En línea"
                                     uiState.otherUser?.lastSeen != null -> 
-                                        "Última vez ${uiState.otherUser!!.lastSeen!!.formatTime()}"
+                                        "Últ. vez ${uiState.otherUser!!.lastSeen!!.formatTime()}"
                                     else -> ""
                                 },
                                 style = MaterialTheme.typography.bodySmall,
@@ -135,7 +130,6 @@ fun ChatDetailScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Input de mensaje
                     OutlinedTextField(
                         value = messageText,
                         onValueChange = {
@@ -155,7 +149,6 @@ fun ChatDetailScreen(
                         singleLine = false
                     )
                     
-                    // Botón enviar (visible solo si hay texto)
                     if (messageText.isNotBlank()) {
                         IconButton(
                             onClick = {
@@ -181,7 +174,6 @@ fun ChatDetailScreen(
             }
         }
     ) { padding ->
-        // Lista de mensajes
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -235,14 +227,13 @@ fun MessageBubble(
                 
                 Spacer(modifier = Modifier.height(4.dp))
                 
-                // Hora y estados
                 Row(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = message.createdAt.formatTime(),
+                        text = if (message.createdAt.isNotEmpty()) message.createdAt.formatTime() else "",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isMine) Gray else Color.White.copy(alpha = 0.7f),
                         fontSize = 10.sp
@@ -251,10 +242,16 @@ fun MessageBubble(
                     if (isMine) {
                         Spacer(modifier = Modifier.width(4.dp))
                         when (message.status) {
-                            MessageStatus.SENT -> Icon(
+                            MessageStatus.SENDING -> Icon(
                                 Icons.Default.Schedule,
                                 contentDescription = "Enviando",
-                                modifier = Modifier.size(12.dp),
+                                modifier = Modifier.size(14.dp),
+                                tint = Gray
+                            )
+                            MessageStatus.SENT -> Icon(
+                                Icons.Default.Check,
+                                contentDescription = "Enviado",
+                                modifier = Modifier.size(14.dp),
                                 tint = Gray
                             )
                             MessageStatus.DELIVERED -> Icon(
