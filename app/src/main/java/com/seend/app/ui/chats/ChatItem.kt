@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -35,7 +36,6 @@ fun ChatItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar
         Box(modifier = Modifier.size(56.dp)) {
             if (chat.otherUser.profilePic.isNotEmpty()) {
                 AsyncImage(
@@ -67,7 +67,6 @@ fun ChatItem(
         
         Spacer(modifier = Modifier.width(12.dp))
         
-        // Nombre y mensaje
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -85,6 +84,10 @@ fun ChatItem(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     when (chat.lastMsgStatus) {
+                        MessageStatus.SENDING -> Icon(
+                            Icons.Default.Schedule, "Enviando",
+                            modifier = Modifier.size(14.dp), tint = Gray
+                        )
                         MessageStatus.SENT -> Icon(
                             Icons.Default.Check, "Enviado",
                             modifier = Modifier.size(14.dp), tint = Gray
@@ -111,7 +114,6 @@ fun ChatItem(
             }
         }
         
-        // Hora y contador
         Column(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(4.dp)
