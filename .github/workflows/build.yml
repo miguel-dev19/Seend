@@ -32,7 +32,7 @@ jobs:
     - name: Subir APK como artifact
       uses: actions/upload-artifact@v4
       with:
-        name: Seend-APK
+        name: Seend-APK-v0.2
         path: app/build/outputs/apk/debug/app-debug.apk
 
   release:
@@ -46,37 +46,33 @@ jobs:
     - name: Descargar APK
       uses: actions/download-artifact@v4
       with:
-        name: Seend-APK
+        name: Seend-APK-v0.2
 
-    - name: Obtener fecha
-      id: version
-      run: |
-        echo "DATE=$(date +'%Y-%m-%d %H:%M')" >> $GITHUB_OUTPUT
-    
-    - name: Crear Release en GitHub
+    - name: Crear Release
       uses: softprops/action-gh-release@v2
       with:
         files: app-debug.apk
-        tag_name: v0.1
-        name: "Seend v0.1 - Beta"
+        tag_name: v0.2
+        name: "Seend v0.2 - Beta"
         body: |
-          ## 🚀 Seend v0.1 - Primera versión beta
+          ## 🚀 Seend v0.2 - Beta
+          
+          ### 🔧 Cambios:
+          - Estados de conexión en barra superior
+          - Flujo completo de mensajes (enviando → enviado → entregado → leído)
+          - Botón enviar solo visible al escribir
+          - Correcciones de UI
           
           ### ✅ Funcionalidades:
-          - 🔐 Registro e inicio de sesión con JWT
-          - 💬 Chat en tiempo real por WebSocket
-          - ✓✓ Estados de mensajes (enviado, entregado, leído)
-          - ✍️ Indicador 'Escribiendo...'
-          - 🔍 Búsqueda de usuarios
-          - 👤 Perfil de usuario
-          - 📸 Fotos de perfil por S3 (plan ToDus)
-          - 📴 Modo offline con Room (SQLite)
+          - 🔐 Registro/Login con JWT
+          - 💬 Chat en tiempo real (WebSocket)
+          - 🕐✓✓✓✓ Estados de mensajes
+          - ✍️ Indicador "Escribiendo..."
+          - 📸 Fotos de perfil (plan ToDus)
+          - 📴 Modo offline (Room SQLite)
           - 🔄 Sincronización automática
           
-          ### 📡 Servidor:
-          https://seend-server.onrender.com
-          
-          ### 📱 Build: ${{ steps.version.outputs.DATE }}
+          📡 Servidor: seend-server.onrender.com
         draft: false
         prerelease: false
       env:
