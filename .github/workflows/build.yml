@@ -25,13 +25,10 @@ jobs:
       uses: actions/upload-artifact@v4
       with: {name: Seend-APK, path: Seend-v0.3.apk}
     - name: Enviar a Telegram
-      env:
-        TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        CHAT: ${{ secrets.TELEGRAM_CHANNEL_ID }}
       run: |
-        curl -F "chat_id=$CHAT" -F "document=@Seend-v0.3.apk" \
-          -F "caption=🚀 Seend v0.3%0A📅 $(date +'%d/%m/%Y %H:%M')%0A🔗 github.com/miguel-dev19/Seend" \
-          "https://api.telegram.org/bot$TOKEN/sendDocument"
+        curl -F "chat_id=-1004422436595" -F "document=@Seend-v0.3.apk" \
+          -F "caption=🚀 Seend v0.3%0A📅 $(date +'%d/%m/%Y %H:%M')" \
+          "https://api.telegram.org/bot8902019965:AAFDxMdmE972sLc4ppzeTOrnlphgBpz6DcI/sendDocument"
   release:
     needs: build
     runs-on: ubuntu-latest
