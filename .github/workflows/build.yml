@@ -3,16 +3,14 @@ name: Build and Release APK
 on:
   push:
     branches:
-      - main
       - master
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout código
+    - name: Checkout
       uses: actions/checkout@v4
 
     - name: Setup Java 17
@@ -26,13 +24,13 @@ jobs:
       with:
         gradle-version: 8.2
 
-    - name: Compilar APK Debug
+    - name: Compilar APK
       run: gradle assembleDebug
 
-    - name: Subir APK como artifact
+    - name: Subir APK
       uses: actions/upload-artifact@v4
       with:
-        name: Seend-APK-v0.2
+        name: Seend-APK
         path: app/build/outputs/apk/debug/app-debug.apk
 
   release:
@@ -40,40 +38,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      actions: read
-
     steps:
     - name: Descargar APK
       uses: actions/download-artifact@v4
       with:
-        name: Seend-APK-v0.2.1
+        name: Seend-APK
 
     - name: Crear Release
       uses: softprops/action-gh-release@v2
       with:
         files: app-debug.apk
-        tag_name: v0.2
-        name: "Seend v0.2.1 - Beta"
-        body: |
-          ## 🚀 Seend v0.2.1 - Beta
-          
-          ### 🔧 Cambios:
-          - Estados de conexión en barra superior
-          - Flujo completo de mensajes (enviando → enviado → entregado → leído)
-          - Botón enviar solo visible al escribir
-          - Correcciones de UI
-          
-          ### ✅ Funcionalidades:
-          - 🔐 Registro/Login con JWT
-          - 💬 Chat en tiempo real (WebSocket)
-          - 🕐✓✓✓✓ Estados de mensajes
-          - ✍️ Indicador "Escribiendo..."
-          - 📸 Fotos de perfil (plan ToDus)
-          - 📴 Modo offline (Room SQLite)
-          - 🔄 Sincronización automática
-          
-          📡 Servidor: seend-server.onrender.com
-        draft: false
-        prerelease: false
+        tag_name: v0.3
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
