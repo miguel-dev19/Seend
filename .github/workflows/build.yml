@@ -1,4 +1,4 @@
-name: Build, Release y Telegram
+name: Build
 
 on:
   push:
@@ -9,36 +9,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Setup Java 17
-      uses: actions/setup-java@v4
-      with: {distribution: 'temurin', java-version: '17'}
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with: {gradle-version: '8.2'}
-    - name: Compilar APK
-      run: gradle assembleDebug
-    - name: Renombrar APK
-      run: mv app/build/outputs/apk/debug/app-debug.apk Seend-v0.3.apk
-    - name: Subir artifact
-      uses: actions/upload-artifact@v4
-      with: {name: Seend-APK, path: Seend-v0.3.apk}
-    - name: Enviar a Telegram
-      run: |
-        curl -F "chat_id=-1004422436595" -F "document=@Seend-v0.3.apk" \
-          -F "caption=🚀 Seend v0.3%0A📅 $(TZ='America/Havana' date +'%d/%m/%Y %H:%M')" \
-          "https://api.telegram.org/bot8902019965:AAFDxMdmE972sLc4ppzeTOrnlphgBpz6DcI/sendDocument"
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions: {contents: write}
-    steps:
-    - uses: actions/download-artifact@v4
-      with: {name: Seend-APK}
-    - uses: softprops/action-gh-release@v2
-      with:
-        files: Seend-v0.3.apk
-        tag_name: v0.3
-        prerelease: false
-      env: {GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}}
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2'
+      - run: gradle assembleDebug
+      - run: mv app/build/outputs/apk/debug/app-debug.apk Seend-v0.3.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Seend-APK
+          path: Seend-v0.3.apk
+      - name: Telegram
+        run: |
+          curl -F "chat_id=-1004422436595" \
+               -F "document=@Seend-v0.3.apk" \
+               -F "caption=Seend v0.3 - $(date +'%d/%m/%Y %H:%M')" \
+               "https://api.telegram.org/bot8902019965:AAFDxMdmE972sLc4ppzeTOrnlphgBpz6DcI/sendDocument"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: Seend-v0.3.apk
+          tag_name: v0.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
