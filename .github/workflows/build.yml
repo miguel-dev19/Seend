@@ -46,16 +46,16 @@ jobs:
     - name: Descargar APK
       uses: actions/download-artifact@v4
       with:
-        name: Seend-APK-v0.2
+        name: Seend-APK-v0.2.1
 
     - name: Crear Release
       uses: softprops/action-gh-release@v2
       with:
         files: app-debug.apk
         tag_name: v0.2
-        name: "Seend v0.2 - Beta"
+        name: "Seend v0.2.1 - Beta"
         body: |
-          ## 🚀 Seend v0.2 - Beta
+          ## 🚀 Seend v0.2.1 - Beta
           
           ### 🔧 Cambios:
           - Estados de conexión en barra superior
