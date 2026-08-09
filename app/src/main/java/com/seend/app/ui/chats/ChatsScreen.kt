@@ -32,7 +32,7 @@ fun ChatsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = uiState.connectionStatus.label,
+                        text = uiState.connectionStatus,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
