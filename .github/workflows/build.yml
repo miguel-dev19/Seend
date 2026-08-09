@@ -1,9 +1,8 @@
-name: Build and Release APK
+name: Build, Release y Telegram
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   workflow_dispatch:
 
 jobs:
@@ -12,42 +11,34 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
     - name: Setup Java 17
       uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
+      with: {distribution: 'temurin', java-version: '17'}
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: 8.2
-
+      with: {gradle-version: '8.2'}
     - name: Compilar APK
       run: gradle assembleDebug
-
-    - name: Subir APK
+    - name: Renombrar APK
+      run: mv app/build/outputs/apk/debug/app-debug.apk Seend-v0.3.apk
+    - name: Subir artifact
       uses: actions/upload-artifact@v4
-      with:
-        name: Seend-APK
-        path: app/build/outputs/apk/debug/app-debug.apk
-
+      with: {name: Seend-APK, path: Seend-v0.3.apk}
+    - name: Enviar a Telegram
+      env:
+        TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        CHAT: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+      run: |
+        curl -F "chat_id=$CHAT" -F "document=@Seend-v0.3.apk" \
+          -F "caption=🚀 Seend v0.3%0A📅 $(date +'%d/%m/%Y %H:%M')%0A🔗 github.com/miguel-dev19/Seend" \
+          "https://api.telegram.org/bot$TOKEN/sendDocument"
   release:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    permissions: {contents: write}
     steps:
-    - name: Descargar APK
-      uses: actions/download-artifact@v4
-      with:
-        name: Seend-APK
-
-    - name: Crear Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: app-debug.apk
-        tag_name: v0.3
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/download-artifact@v4
+      with: {name: Seend-APK}
+    - uses: softprops/action-gh-release@v2
+      with: {files: Seend-v0.3.apk, tag_name: v0.3}
+      env: {GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}}
