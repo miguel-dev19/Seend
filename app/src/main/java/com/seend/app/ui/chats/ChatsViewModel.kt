@@ -1,53 +1,94 @@
 package com.seend.app.ui.chats
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
 import com.seend.app.data.model.Chat
 import com.seend.app.data.model.WsReceiveMessage
+import com.seend.app.data.network.ConnectionEvent
+import com.seend.app.data.network.ConnectionManager
+import com.seend.app.data.network.NetworkChangeMonitor
 import com.seend.app.data.repository.ChatRepository
-import com.seend.app.util.TokenManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class ChatsUiState(
-    val connectionStatus: ConnectionStatus = ConnectionStatus.ESPERANDO_RED,
+    val connectionStatus: String = "Esperando red...",
+    val connectionType: String = "",
     val chats: List<Chat> = emptyList(),
     val typingUsers: Map<String, Boolean> = emptyMap(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
-enum class ConnectionStatus(val label: String) {
-    ESPERANDO_RED("Esperando red..."),
-    CONECTANDO("Conectando..."),
-    ACTUALIZANDO("Actualizando..."),
-    CONECTADO("Seend")
-}
-
 class ChatsViewModel(
+    application: Application,
     private val chatRepository: ChatRepository,
     private val webSocketManager: WebSocketManager
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(ChatsUiState())
     val uiState: StateFlow<ChatsUiState> = _uiState.asStateFlow()
 
+    private val networkMonitor = NetworkChangeMonitor(application)
+    private val connectionManager = ConnectionManager(application)
+
     init {
+        monitorNetwork()
         loadChats()
         observeWebSocket()
-        simulateConnection()
     }
 
-    private fun simulateConnection() {
+    private fun monitorNetwork() {
+        networkMonitor.startMonitoring()
+
+        // Escuchar cambios de red
         viewModelScope.launch {
-            _uiState.update { it.copy(connectionStatus = ConnectionStatus.ESPERANDO_RED) }
-            kotlinx.coroutines.delay(1000)
-            _uiState.update { it.copy(connectionStatus = ConnectionStatus.CONECTANDO) }
-            kotlinx.coroutines.delay(1500)
-            _uiState.update { it.copy(connectionStatus = ConnectionStatus.ACTUALIZANDO) }
-            kotlinx.coroutines.delay(1000)
-            _uiState.update { it.copy(connectionStatus = ConnectionStatus.CONECTADO) }
+            networkMonitor.networkChangeFlow.collect { event ->
+                when {
+                    !event.isAvailable -> {
+                        _uiState.update { it.copy(
+                            connectionStatus = "Esperando red...",
+                            connectionType = ""
+                        )}
+                    }
+                    event.event == ConnectionEvent.CONNECTED || 
+                    event.event == ConnectionEvent.RECONNECTED -> {
+                        _uiState.update { it.copy(connectionStatus = "Conectando...") }
+                        delay(1000)
+                        
+                        // Obtener tipo de conexión
+                        val speedLabel = connectionManager.getCurrentSpeedLabel()
+                        val typeLabel = when (event.type) {
+                            com.seend.app.data.network.NetworkType.WIFI -> "WiFi"
+                            com.seend.app.data.network.NetworkType.MOBILE -> speedLabel
+                            else -> ""
+                        }
+                        
+                        _uiState.update { it.copy(connectionStatus = "Actualizando...") }
+                        loadChats()
+                        delay(500)
+                        
+                        _uiState.update { it.copy(
+                            connectionStatus = "Seend",
+                            connectionType = typeLabel
+                        )}
+                    }
+                }
+            }
+        }
+
+        // Escuchar cambios de velocidad
+        viewModelScope.launch {
+            connectionManager.status.collect { status ->
+                _uiState.update { state ->
+                    if (state.connectionStatus == "Seend") {
+                        state.copy(connectionType = status.download.label)
+                    } else state
+                }
+            }
         }
     }
 
@@ -55,23 +96,15 @@ class ChatsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
-            val result = chatRepository.getChats()
-            result.fold(
+            chatRepository.getChats().fold(
                 onSuccess = { chats ->
-                    _uiState.update { 
-                        it.copy(
-                            chats = chats,
-                            isLoading = false,
-                            error = null
-                        )
+                    _uiState.update {
+                        it.copy(chats = chats, isLoading = false, error = null)
                     }
                 },
                 onFailure = { error ->
                     _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = error.message
-                        )
+                        it.copy(isLoading = false, error = error.message)
                     }
                 }
             )
@@ -82,35 +115,33 @@ class ChatsViewModel(
         viewModelScope.launch {
             webSocketManager.messages.collect { wsMessage ->
                 when (wsMessage.type) {
-                    "message" -> {
-                        // Nuevo mensaje recibido, recargar chats
-                        loadChats()
-                    }
+                    "message" -> loadChats()
                     "typing" -> {
                         wsMessage.userId?.let { userId ->
-                            val typing = wsMessage.typing ?: false
                             _uiState.update { state ->
                                 state.copy(
-                                    typingUsers = state.typingUsers + (userId to typing)
+                                    typingUsers = state.typingUsers + (userId to (wsMessage.typing ?: false))
                                 )
                             }
                         }
                     }
-                    "user_status" -> {
-                        // Actualizar estado online/offline
-                        loadChats()
-                    }
+                    "user_status" -> loadChats()
                 }
             }
         }
     }
 
     fun refreshChats() {
-        _uiState.update { it.copy(connectionStatus = ConnectionStatus.ACTUALIZANDO) }
+        _uiState.update { it.copy(connectionStatus = "Actualizando...") }
         loadChats()
         viewModelScope.launch {
-            kotlinx.coroutines.delay(500)
-            _uiState.update { it.copy(connectionStatus = ConnectionStatus.CONECTADO) }
+            delay(500)
+            _uiState.update { it.copy(connectionStatus = "Seend") }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        networkMonitor.stopMonitoring()
     }
 }

@@ -1,6 +1,7 @@
 package com.seend.app.ui.navigation
 
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,6 +30,8 @@ object Routes {
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val application = context.applicationContext as android.app.Application
     
     val authRepository = remember { AppModule.provideAuthRepository() }
     val webSocketManager = remember { AppModule.provideWebSocketManager() }
@@ -82,7 +85,7 @@ fun NavGraph() {
         composable(Routes.CHATS) {
             val chatRepository = remember { AppModule.provideChatRepository() }
             val chatsViewModel: ChatsViewModel = viewModel(
-                factory = ChatsViewModelFactory(chatRepository, webSocketManager)
+                factory = ChatsViewModelFactory(application, chatRepository, webSocketManager)
             )
             
             ChatsScreen(
