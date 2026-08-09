@@ -17,4 +17,7 @@ interface SeendApi {
     
     @POST("api/chats/user/{userId}")
     suspend fun createOrGetChat(@Path("userId") userId: String): Response<CreateChatResponse>
+    
+    @GET("api/chats/{chatId}/messages")
+    suspend fun getMessages(@Path("chatId") chatId: String): Response<List<Message>>
 }

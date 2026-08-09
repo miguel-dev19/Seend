@@ -38,22 +38,35 @@ class ChatDetailViewModel(
     private val currentUserId = TokenManager.getUserId()
 
     init {
+        loadMessages()
         observeWebSocket()
+    }
+
+    fun loadMessages() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            chatRepository.getMessages(chatId).fold(
+                onSuccess = { messages ->
+                    _uiState.update { it.copy(messages = messages, isLoading = false) }
+                },
+                onFailure = {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+            )
+        }
     }
 
     fun loadUserProfile(userId: String) {
         viewModelScope.launch {
             userRepository.getUserProfile(userId).fold(
-                onSuccess = { user ->
-                    _uiState.update { it.copy(otherUser = user) }
-                },
+                onSuccess = { user -> _uiState.update { it.copy(otherUser = user) } },
                 onFailure = {}
             )
         }
     }
 
     fun sendMessage(content: String, receiverId: String) {
-        // Agregar mensaje local con estado SENDING
         val tempMessage = Message(
             id = UUID.randomUUID().toString(),
             chatId = chatId,
@@ -63,7 +76,6 @@ class ChatDetailViewModel(
             createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
         )
         _uiState.update { it.copy(messages = it.messages + tempMessage) }
-        
         webSocketManager.sendMessage(chatId, content, receiverId)
     }
 
@@ -83,63 +95,34 @@ class ChatDetailViewModel(
                         wsMessage.message?.let { msg ->
                             if (msg.chatId == chatId) {
                                 _uiState.update { state ->
-                                    val existingIndex = state.messages.indexOfFirst { it.id == msg.id }
-                                    if (existingIndex >= 0) {
+                                    val existing = state.messages.indexOfFirst { it.id == msg.id }
+                                    if (existing >= 0) {
                                         val updated = state.messages.toMutableList()
-                                        updated[existingIndex] = Message(
-                                            id = msg.id,
-                                            chatId = msg.chatId,
-                                            senderId = msg.senderId,
-                                            content = msg.content,
-                                            status = MessageStatus.valueOf(msg.status.uppercase()),
-                                            createdAt = msg.createdAt
-                                        )
+                                        updated[existing] = Message(msg.id, msg.chatId, msg.senderId, msg.content, MessageStatus.valueOf(msg.status.uppercase()), msg.createdAt)
                                         state.copy(messages = updated)
                                     } else {
-                                        state.copy(
-                                            messages = state.messages + Message(
-                                                id = msg.id,
-                                                chatId = msg.chatId,
-                                                senderId = msg.senderId,
-                                                content = msg.content,
-                                                status = MessageStatus.valueOf(msg.status.uppercase()),
-                                                createdAt = msg.createdAt
-                                            )
-                                        )
+                                        state.copy(messages = state.messages + Message(msg.id, msg.chatId, msg.senderId, msg.content, MessageStatus.valueOf(msg.status.uppercase()), msg.createdAt))
                                     }
                                 }
-                                
-                                if (msg.senderId != currentUserId) {
-                                    sendReadReceipt(msg.id)
-                                }
+                                if (msg.senderId != currentUserId) sendReadReceipt(msg.id)
                             }
                         }
                     }
                     "typing" -> {
-                        if (wsMessage.chatId == chatId && wsMessage.userId != currentUserId) {
+                        if (wsMessage.chatId == chatId && wsMessage.userId != currentUserId)
                             _uiState.update { it.copy(isTyping = wsMessage.typing ?: false) }
-                        }
                     }
                     "read_receipt" -> {
-                        wsMessage.messageId?.let { messageId ->
+                        wsMessage.messageId?.let { mid ->
                             _uiState.update { state ->
-                                val updated = state.messages.map { msg ->
-                                    if (msg.id == messageId) msg.copy(status = MessageStatus.READ)
-                                    else msg
-                                }
-                                state.copy(messages = updated)
+                                state.copy(messages = state.messages.map { if (it.id == mid) it.copy(status = MessageStatus.READ) else it })
                             }
                         }
                     }
                     "user_status" -> {
-                        wsMessage.userId?.let { userId ->
+                        wsMessage.userId?.let { uid ->
                             _uiState.update { state ->
-                                state.copy(
-                                    otherUser = state.otherUser?.copy(
-                                        isOnline = wsMessage.online ?: false,
-                                        lastSeen = wsMessage.lastSeen
-                                    )
-                                )
+                                state.copy(otherUser = state.otherUser?.copy(isOnline = wsMessage.online ?: false, lastSeen = wsMessage.lastSeen))
                             }
                         }
                     }

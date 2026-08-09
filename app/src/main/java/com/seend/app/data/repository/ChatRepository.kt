@@ -2,8 +2,11 @@ package com.seend.app.data.repository
 
 import com.seend.app.data.api.SeendApi
 import com.seend.app.data.local.ChatEntity
+import com.seend.app.data.local.MessageEntity
 import com.seend.app.data.local.SeendDatabase
 import com.seend.app.data.model.Chat
+import com.seend.app.data.model.Message
+import com.seend.app.data.model.MessageStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -59,7 +62,49 @@ class ChatRepository(
         }
     }
     
+    suspend fun getMessages(chatId: String): Result<List<Message>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = api.getMessages(chatId)
+                if (response.isSuccessful) {
+                    val messages = response.body() ?: emptyList()
+                    val entities = messages.map { msg ->
+                        MessageEntity(
+                            id = msg.id,
+                            chatId = msg.chatId,
+                            senderId = msg.senderId,
+                            content = msg.content,
+                            status = msg.status.name,
+                            createdAt = msg.createdAt
+                        )
+                    }
+                    db.messageDao().insertMessages(entities)
+                    Result.success(messages)
+                } else {
+                    Result.failure(Exception("Error: ${response.code()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+    
+    fun getMessagesFlow(chatId: String): Flow<List<Message>> {
+        return db.messageDao().getMessagesByChatId(chatId).map { entities ->
+            entities.map { it.toModel() }
+        }
+    }
+    
     suspend fun markChatAsRead(chatId: String) {
         db.chatDao().markAsRead(chatId)
     }
+    
+    suspend fun updateMessageStatus(messageId: String, status: String) {
+        db.messageDao().updateMessageStatus(messageId, status)
+    }
 }
+
+fun MessageEntity.toModel() = Message(
+    id = id, chatId = chatId, senderId = senderId, content = content,
+    status = MessageStatus.valueOf(status), createdAt = createdAt
+)
