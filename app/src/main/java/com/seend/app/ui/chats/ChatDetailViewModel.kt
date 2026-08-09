@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
 import com.seend.app.data.model.Message
+import com.seend.app.data.model.MessageStatus
 import com.seend.app.data.model.User
 import com.seend.app.data.model.WsReceiveMessage
 import com.seend.app.data.repository.ChatRepository
@@ -13,14 +14,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class ChatDetailUiState(
     val messages: List<Message> = emptyList(),
     val otherUser: User? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val isTyping: Boolean = false,
-    val connectionStatus: String = "Conectado"
+    val isTyping: Boolean = false
 )
 
 class ChatDetailViewModel(
@@ -36,27 +38,7 @@ class ChatDetailViewModel(
     private val currentUserId = TokenManager.getUserId()
 
     init {
-        loadMessages()
         observeWebSocket()
-    }
-
-    fun loadMessages() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            
-            chatRepository.getMessages(chatId).fold(
-                onSuccess = { messages ->
-                    _uiState.update {
-                        it.copy(messages = messages, isLoading = false)
-                    }
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(isLoading = false, error = error.message)
-                    }
-                }
-            )
-        }
     }
 
     fun loadUserProfile(userId: String) {
@@ -71,6 +53,17 @@ class ChatDetailViewModel(
     }
 
     fun sendMessage(content: String, receiverId: String) {
+        // Agregar mensaje local con estado SENDING
+        val tempMessage = Message(
+            id = UUID.randomUUID().toString(),
+            chatId = chatId,
+            senderId = currentUserId ?: "",
+            content = content,
+            status = MessageStatus.SENDING,
+            createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
+        )
+        _uiState.update { it.copy(messages = it.messages + tempMessage) }
+        
         webSocketManager.sendMessage(chatId, content, receiverId)
     }
 
@@ -89,22 +82,19 @@ class ChatDetailViewModel(
                     "message" -> {
                         wsMessage.message?.let { msg ->
                             if (msg.chatId == chatId) {
-                                // Agregar o actualizar mensaje
                                 _uiState.update { state ->
                                     val existingIndex = state.messages.indexOfFirst { it.id == msg.id }
                                     if (existingIndex >= 0) {
-                                        val updatedMessages = state.messages.toMutableList()
-                                        updatedMessages[existingIndex] = Message(
+                                        val updated = state.messages.toMutableList()
+                                        updated[existingIndex] = Message(
                                             id = msg.id,
                                             chatId = msg.chatId,
                                             senderId = msg.senderId,
                                             content = msg.content,
-                                            status = com.seend.app.data.model.MessageStatus.valueOf(
-                                                msg.status.uppercase()
-                                            ),
+                                            status = MessageStatus.valueOf(msg.status.uppercase()),
                                             createdAt = msg.createdAt
                                         )
-                                        state.copy(messages = updatedMessages)
+                                        state.copy(messages = updated)
                                     } else {
                                         state.copy(
                                             messages = state.messages + Message(
@@ -112,16 +102,13 @@ class ChatDetailViewModel(
                                                 chatId = msg.chatId,
                                                 senderId = msg.senderId,
                                                 content = msg.content,
-                                                status = com.seend.app.data.model.MessageStatus.valueOf(
-                                                    msg.status.uppercase()
-                                                ),
+                                                status = MessageStatus.valueOf(msg.status.uppercase()),
                                                 createdAt = msg.createdAt
                                             )
                                         )
                                     }
                                 }
                                 
-                                // Enviar confirmación de lectura para mensajes recibidos
                                 if (msg.senderId != currentUserId) {
                                     sendReadReceipt(msg.id)
                                 }
@@ -134,15 +121,13 @@ class ChatDetailViewModel(
                         }
                     }
                     "read_receipt" -> {
-                        // Actualizar estado a leído
                         wsMessage.messageId?.let { messageId ->
                             _uiState.update { state ->
-                                val updatedMessages = state.messages.map { msg ->
-                                    if (msg.id == messageId) {
-                                        msg.copy(status = com.seend.app.data.model.MessageStatus.READ)
-                                    } else msg
+                                val updated = state.messages.map { msg ->
+                                    if (msg.id == messageId) msg.copy(status = MessageStatus.READ)
+                                    else msg
                                 }
-                                state.copy(messages = updatedMessages)
+                                state.copy(messages = updated)
                             }
                         }
                     }
