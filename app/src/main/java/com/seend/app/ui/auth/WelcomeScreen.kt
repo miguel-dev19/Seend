@@ -1,15 +1,14 @@
 package com.seend.app.ui.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -28,12 +27,20 @@ fun WelcomeScreen(onContinueClick: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             // Logo de Seend
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "Seend Logo",
-                modifier = Modifier.size(140.dp),
-                contentScale = ContentScale.Fit
-            )
+            Surface(
+                modifier = Modifier.size(120.dp),
+                shape = RoundedCornerShape(24.dp),
+                color = LightBlue
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        Icons.Default.Chat,
+                        contentDescription = "Seend",
+                        modifier = Modifier.size(70.dp),
+                        tint = PrimaryBlue
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
