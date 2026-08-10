@@ -8,21 +8,19 @@ private val LightColorScheme = lightColorScheme(
     primary = PrimaryBlue,
     onPrimary = White,
     primaryContainer = LightBlue,
-    onPrimaryContainer = DarkPrimaryBlue,
+    onPrimaryContainer = DarkBlue,
     secondary = AccentBlue,
     onSecondary = White,
     background = White,
-    onBackground = DarkGray,
+    onBackground = Black,
     surface = White,
-    onSurface = DarkGray,
+    onSurface = Black,
     surfaceVariant = LightGray,
     onSurfaceVariant = Gray
 )
 
 @Composable
-fun SeendTheme(
-    content: @Composable () -> Unit
-) {
+fun SeendTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = LightColorScheme,
         typography = Typography,
