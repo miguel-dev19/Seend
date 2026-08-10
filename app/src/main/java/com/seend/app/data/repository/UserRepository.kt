@@ -19,7 +19,7 @@ class UserRepository(
                 if (response.isSuccessful) {
                     val users = response.body() ?: emptyList()
                     val entities = users.map { it.toEntity() }
-                    db.userDao().insertUsers(entities)
+                    db.userDao().upsertUsers(entities)
                     Result.success(users)
                 } else {
                     Result.failure(Exception("Error: ${response.code()}"))
@@ -36,7 +36,7 @@ class UserRepository(
                 val response = api.getUserProfile(userId)
                 if (response.isSuccessful) {
                     val user = response.body()!!
-                    db.userDao().insertUser(user.toEntity())
+                    db.userDao().upsertUser(user.toEntity())
                     Result.success(user)
                 } else {
                     val local = db.userDao().getUserById(userId)

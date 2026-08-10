@@ -29,7 +29,7 @@ fun WelcomeScreen(onContinueClick: () -> Unit) {
         ) {
             // Logo de Seend
             Image(
-                painter = painterResource(id = R.drawable.logo_seend),
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
                 contentDescription = "Seend Logo",
                 modifier = Modifier.size(140.dp),
                 contentScale = ContentScale.Fit
