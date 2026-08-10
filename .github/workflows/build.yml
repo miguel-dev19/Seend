@@ -18,20 +18,20 @@ jobs:
         with:
           gradle-version: '8.2'
       - run: gradle assembleDebug
-      - run: mv app/build/outputs/apk/debug/app-debug.apk Seend-v0.3.apk
+      - run: mv app/build/outputs/apk/debug/app-debug.apk Seend-v0.4.apk
       - uses: actions/upload-artifact@v4
         with:
           name: Seend-APK
-          path: Seend-v0.3.apk
+          path: Seend-v0.4.apk
       - name: Telegram
         run: |
           curl -F "chat_id=-1004422436595" \
-               -F "document=@Seend-v0.3.apk" \
-               -F "caption=Seend v0.3 - $(date +'%d/%m/%Y %H:%M')" \
+               -F "document=@Seend-v0.4.apk" \
+               -F "caption=Seend v0.4 - $(date +'%d/%m/%Y %H:%M')" \
                "https://api.telegram.org/bot8902019965:AAFDxMdmE972sLc4ppzeTOrnlphgBpz6DcI/sendDocument"
       - uses: softprops/action-gh-release@v2
         with:
-          files: Seend-v0.3.apk
-          tag_name: v0.3
+          files: Seend-v0.4.apk
+          tag_name: v0.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -9,6 +9,7 @@ import com.seend.app.data.model.Message
 import com.seend.app.data.model.MessageStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ChatRepository(
@@ -91,7 +92,16 @@ class ChatRepository(
     
     fun getMessagesFlow(chatId: String): Flow<List<Message>> {
         return db.messageDao().getMessagesByChatId(chatId).map { entities ->
-            entities.map { it.toModel() }
+            entities.map { entity ->
+                Message(
+                    id = entity.id,
+                    chatId = entity.chatId,
+                    senderId = entity.senderId,
+                    content = entity.content,
+                    status = MessageStatus.valueOf(entity.status),
+                    createdAt = entity.createdAt
+                )
+            }
         }
     }
     
@@ -103,8 +113,3 @@ class ChatRepository(
         db.messageDao().updateMessageStatus(messageId, status)
     }
 }
-
-fun MessageEntity.toModel() = Message(
-    id = id, chatId = chatId, senderId = senderId, content = content,
-    status = MessageStatus.valueOf(status), createdAt = createdAt
-)
