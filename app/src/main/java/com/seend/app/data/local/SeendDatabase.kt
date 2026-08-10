@@ -6,8 +6,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [UserEntity::class, ChatEntity::class, MessageEntity::class],
-    version = 1,
+    entities = [UserEntity::class, ChatEntity::class, MessageEntity::class, OfflineMessage::class],
+    version = 2,
     exportSchema = false
 )
 abstract class SeendDatabase : RoomDatabase() {
@@ -15,6 +15,7 @@ abstract class SeendDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun chatDao(): ChatDao
     abstract fun messageDao(): MessageDao
+    abstract fun offlineQueueDao(): OfflineQueueDao
     
     companion object {
         @Volatile

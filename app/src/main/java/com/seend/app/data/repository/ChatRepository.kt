@@ -1,13 +1,13 @@
 package com.seend.app.data.repository
 
 import com.seend.app.data.api.SeendApi
-import com.seend.app.data.local.ChatEntity
-import com.seend.app.data.local.MessageEntity
-import com.seend.app.data.local.SeendDatabase
+import com.seend.app.data.local.*
 import com.seend.app.data.model.Chat
 import com.seend.app.data.model.Message
 import com.seend.app.data.model.MessageStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ChatRepository(
@@ -33,7 +33,7 @@ class ChatRepository(
                             lastMsgStatus = chat.lastMsgStatus?.name ?: ""
                         )
                     }
-                    db.chatDao().insertChats(entities)
+                    db.chatDao().upsertChats(entities)  // ← Upsert evita duplicados
                     Result.success(chats)
                 } else {
                     Result.failure(Exception("Error: ${response.code()}"))
@@ -43,6 +43,9 @@ class ChatRepository(
             }
         }
     }
+    
+    // Flow: la UI se actualiza sola cuando la BD cambia
+    fun getChatsFlow(): Flow<List<ChatEntity>> = db.chatDao().getAllChatsFlow()
     
     suspend fun createOrGetChat(userId: String): Result<String> {
         return withContext(Dispatchers.IO) {
@@ -67,15 +70,11 @@ class ChatRepository(
                     val messages = response.body() ?: emptyList()
                     val entities = messages.map { msg ->
                         MessageEntity(
-                            id = msg.id,
-                            chatId = msg.chatId,
-                            senderId = msg.senderId,
-                            content = msg.content,
-                            status = msg.status.name,
-                            createdAt = msg.createdAt
+                            id = msg.id, chatId = msg.chatId, senderId = msg.senderId,
+                            content = msg.content, status = msg.status.name, createdAt = msg.createdAt
                         )
                     }
-                    db.messageDao().insertMessages(entities)
+                    db.messageDao().upsertMessages(entities)  // ← Upsert
                     Result.success(messages)
                 } else {
                     Result.failure(Exception("Error: ${response.code()}"))
@@ -86,7 +85,36 @@ class ChatRepository(
         }
     }
     
+    // Flow de mensajes: se actualiza solo
+    fun getMessagesFlow(chatId: String): Flow<List<Message>> {
+        return db.messageDao().getMessagesFlow(chatId).map { entities ->
+            entities.map { Message(it.id, it.chatId, it.senderId, it.content, MessageStatus.valueOf(it.status), it.createdAt) }
+        }
+    }
+    
+    // Actualizar último mensaje del chat (como ToDus updateLastMessage)
+    suspend fun updateLastMessage(chatId: String, message: String, time: String, status: String) {
+        withContext(Dispatchers.IO) {
+            db.chatDao().updateLastMessage(chatId, message, time, status)
+        }
+    }
+    
+    // Actualizar estado de mensaje progresivo
+    suspend fun updateMessageStatusProgressive(messageId: String, newStatus: String) {
+        withContext(Dispatchers.IO) {
+            db.messageDao().updateMessageStatusProgressive(messageId, newStatus)
+        }
+    }
+    
     suspend fun markChatAsRead(chatId: String) {
-        db.chatDao().markAsRead(chatId)
+        withContext(Dispatchers.IO) {
+            db.chatDao().markAsRead(chatId)
+        }
+    }
+    
+    suspend fun deleteChat(chatId: String) {
+        withContext(Dispatchers.IO) {
+            db.chatDao().deleteChat(chatId)
+        }
     }
 }

@@ -14,13 +14,18 @@ data class Message(
     val createdAt: String = ""
 )
 
-enum class MessageStatus {
+enum class MessageStatus(val level: Int) {
     @SerializedName("sending")
-    SENDING,
+    SENDING(0),
     @SerializedName("sent")
-    SENT,
+    SENT(1),
     @SerializedName("delivered")
-    DELIVERED,
+    DELIVERED(2),
     @SerializedName("read")
-    READ
+    READ(3);
+    
+    // Solo actualiza si el nuevo estado es mayor (progresivo)
+    fun canUpgradeTo(newStatus: MessageStatus): Boolean {
+        return newStatus.level > this.level
+    }
 }

@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
+import com.seend.app.data.local.ChatEntity
 import com.seend.app.data.model.Chat
 import com.seend.app.data.model.MessageStatus
 import com.seend.app.data.network.ConnectionManager
