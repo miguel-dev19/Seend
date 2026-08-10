@@ -18,14 +18,11 @@ class UserRepository(
                 val response = api.getUsers()
                 if (response.isSuccessful) {
                     val users = response.body() ?: emptyList()
-                    // Guardar en Room
                     val entities = users.map { it.toEntity() }
                     db.userDao().insertUsers(entities)
                     Result.success(users)
                 } else {
-                    // Si falla, cargar de Room
-                    val localUsers = db.userDao().getAllUsers()
-                    Result.success(emptyList())
+                    Result.failure(Exception("Error: ${response.code()}"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
@@ -42,13 +39,9 @@ class UserRepository(
                     db.userDao().insertUser(user.toEntity())
                     Result.success(user)
                 } else {
-                    // Cargar de Room
-                    val localUser = db.userDao().getUserById(userId)
-                    if (localUser != null) {
-                        Result.success(localUser.toModel())
-                    } else {
-                        Result.failure(Exception("Usuario no encontrado"))
-                    }
+                    val local = db.userDao().getUserById(userId)
+                    if (local != null) Result.success(local.toModel())
+                    else Result.failure(Exception("Usuario no encontrado"))
                 }
             } catch (e: Exception) {
                 Result.failure(e)

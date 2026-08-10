@@ -8,8 +8,6 @@ import com.seend.app.data.model.Chat
 import com.seend.app.data.model.Message
 import com.seend.app.data.model.MessageStatus
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class ChatRepository(
@@ -29,10 +27,10 @@ class ChatRepository(
                             otherUserId = chat.otherUser.id,
                             otherUsername = chat.otherUser.username,
                             otherProfilePic = chat.otherUser.profilePic,
-                            lastMessage = chat.lastMessage,
-                            lastTime = chat.lastTime,
+                            lastMessage = chat.lastMessage ?: "",
+                            lastTime = chat.lastTime ?: "",
                             unreadCount = chat.unreadCount,
-                            lastMsgStatus = chat.lastMsgStatus?.name
+                            lastMsgStatus = chat.lastMsgStatus?.name ?: ""
                         )
                     }
                     db.chatDao().insertChats(entities)
@@ -45,8 +43,6 @@ class ChatRepository(
             }
         }
     }
-    
-    fun getChatsFlow(): Flow<List<ChatEntity>> = db.chatDao().getAllChats()
     
     suspend fun createOrGetChat(userId: String): Result<String> {
         return withContext(Dispatchers.IO) {
@@ -90,26 +86,7 @@ class ChatRepository(
         }
     }
     
-    fun getMessagesFlow(chatId: String): Flow<List<Message>> {
-        return db.messageDao().getMessagesByChatId(chatId).map { entities ->
-            entities.map { entity ->
-                Message(
-                    id = entity.id,
-                    chatId = entity.chatId,
-                    senderId = entity.senderId,
-                    content = entity.content,
-                    status = MessageStatus.valueOf(entity.status),
-                    createdAt = entity.createdAt
-                )
-            }
-        }
-    }
-    
     suspend fun markChatAsRead(chatId: String) {
         db.chatDao().markAsRead(chatId)
-    }
-    
-    suspend fun updateMessageStatus(messageId: String, status: String) {
-        db.messageDao().updateMessageStatus(messageId, status)
     }
 }

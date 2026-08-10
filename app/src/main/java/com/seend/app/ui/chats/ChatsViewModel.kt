@@ -44,16 +44,15 @@ class ChatsViewModel(
         networkMonitor.startMonitoring()
         viewModelScope.launch {
             networkMonitor.networkChangeFlow.collect { event ->
-                when {
-                    !event.isAvailable -> _uiState.update { it.copy(connectionStatus = "Esperando red...", connectionType = "") }
-                    else -> {
-                        _uiState.update { it.copy(connectionStatus = "Conectando...") }
-                        delay(1000)
-                        _uiState.update { it.copy(connectionStatus = "Actualizando...") }
-                        loadChats()
-                        delay(500)
-                        _uiState.update { it.copy(connectionStatus = "Seend", connectionType = connectionManager.getCurrentSpeedLabel()) }
-                    }
+                if (!event.isAvailable) {
+                    _uiState.update { it.copy(connectionStatus = "Esperando red...", connectionType = "") }
+                } else {
+                    _uiState.update { it.copy(connectionStatus = "Conectando...") }
+                    delay(1000)
+                    _uiState.update { it.copy(connectionStatus = "Actualizando...") }
+                    loadChats()
+                    delay(500)
+                    _uiState.update { it.copy(connectionStatus = "Seend", connectionType = connectionManager.getCurrentSpeedLabel()) }
                 }
             }
         }
@@ -100,9 +99,7 @@ class ChatsViewModel(
         }
     }
 
-    fun refreshChats() {
-        loadChats()
-    }
+    fun refreshChats() { loadChats() }
 
     override fun onCleared() {
         super.onCleared()
