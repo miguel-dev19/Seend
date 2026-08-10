@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.AlternateEmail
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -43,10 +44,11 @@ fun LoginScreen(
             Text("Ingresa tu cuenta de Seend\npara continuar", style = MaterialTheme.typography.bodyLarge, color = Gray, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(48.dp))
 
+            // Campo usuario con icono @
             OutlinedTextField(
                 value = username, onValueChange = { username = it },
                 label = { Text("Usuario") },
-                leadingIcon = { Icon(Icons.Default.Person, "Usuario", tint = PrimaryBlue) },
+                leadingIcon = { Icon(Icons.Outlined.AlternateEmail, "@", tint = PrimaryBlue) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -101,7 +103,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // "Crear cuenta" CLICKABLE
+            // Solo "Crear cuenta" es clickeable
             Text(
                 text = buildAnnotatedString {
                     withStyle(style = SpanStyle(color = Gray)) { append("¿No tienes una cuenta? ") }

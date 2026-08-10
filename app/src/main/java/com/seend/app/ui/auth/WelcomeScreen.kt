@@ -1,5 +1,6 @@
 package com.seend.app.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -7,7 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -19,41 +21,34 @@ import com.seend.app.ui.theme.*
 
 @Composable
 fun WelcomeScreen(onContinueClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(White)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(White)) {
         Column(
             modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo
-            Surface(
-                modifier = Modifier.size(120.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = LightBlue
-            ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        "Seend",
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = PrimaryBlue,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+            // Logo de Seend
+            Image(
+                painter = painterResource(id = R.drawable.logo_seend),
+                contentDescription = "Seend Logo",
+                modifier = Modifier.size(140.dp),
+                contentScale = ContentScale.Fit
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text("Bienvenido a", style = MaterialTheme.typography.headlineMedium, color = Black)
-            Text("Seend", style = MaterialTheme.typography.headlineLarge, color = PrimaryBlue, fontSize = 42.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "¡Bienvenido a Seend!",
+                style = MaterialTheme.typography.headlineLarge,
+                color = Black,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                "Mensajería instantánea\nrápida y segura",
+                "Mensajería rápida, instantánea y segura",
                 style = MaterialTheme.typography.bodyLarge,
                 color = Gray,
                 textAlign = TextAlign.Center
@@ -73,15 +68,12 @@ fun WelcomeScreen(onContinueClick: () -> Unit) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
-
             Button(
                 onClick = onContinueClick,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-            ) {
-                Text("Continuar", style = MaterialTheme.typography.titleMedium, color = White)
-            }
+            ) { Text("Continuar", style = MaterialTheme.typography.titleMedium, color = White) }
         }
     }
 }

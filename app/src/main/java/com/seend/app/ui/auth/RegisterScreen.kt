@@ -12,6 +12,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.AlternateEmail
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -65,7 +67,7 @@ fun RegisterScreen(
                         AsyncImage(model = selectedImageUri, contentDescription = "Foto", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     } else {
                         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                            Icon(Icons.Default.Person, "Avatar", modifier = Modifier.size(70.dp), tint = PrimaryBlue)
+                            Icon(Icons.Outlined.Person, "Avatar", modifier = Modifier.size(70.dp), tint = PrimaryBlue)
                         }
                     }
                 }
@@ -78,20 +80,22 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Campo Nombre - icono de usuario
             OutlinedTextField(
                 value = name, onValueChange = { name = it },
                 label = { Text("Nombre") },
-                leadingIcon = { Icon(Icons.Default.Badge, "Nombre", tint = PrimaryBlue) },
+                leadingIcon = { Icon(Icons.Outlined.Person, "Nombre", tint = PrimaryBlue) },
                 modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryBlue, unfocusedBorderColor = LightGray, focusedLabelColor = PrimaryBlue, unfocusedLabelColor = Gray, cursorColor = PrimaryBlue, focusedTextColor = Black, unfocusedTextColor = Black),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), singleLine = true
             )
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Campo Usuario - icono @
             OutlinedTextField(
                 value = username, onValueChange = { username = it },
                 label = { Text("Usuario") },
-                leadingIcon = { Icon(Icons.Default.Person, "Usuario", tint = PrimaryBlue) },
+                leadingIcon = { Icon(Icons.Outlined.AlternateEmail, "@", tint = PrimaryBlue) },
                 modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryBlue, unfocusedBorderColor = LightGray, focusedLabelColor = PrimaryBlue, unfocusedLabelColor = Gray, cursorColor = PrimaryBlue, focusedTextColor = Black, unfocusedTextColor = Black),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next), singleLine = true
