@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,11 +25,14 @@ import com.seend.app.util.formatDateTime
 fun ProfileScreen(user: User?, isLoading: Boolean, onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Perfil", color = Black) },
-                navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, "Volver", tint = Black) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = White)
-            )
+            Column {
+                TopAppBar(
+                    title = { Text("Perfil", color = Black, fontWeight = FontWeight.Bold) },
+                    navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, "Volver", tint = Black) } },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = White)
+                )
+                Divider(color = LightGray, thickness = 0.5.dp)
+            }
         }
     ) { padding ->
         if (isLoading) {
@@ -38,13 +41,12 @@ fun ProfileScreen(user: User?, isLoading: Boolean, onBackClick: () -> Unit) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { Text("Usuario no encontrado", color = Gray) }
         } else {
             Column(modifier = Modifier.fillMaxSize().padding(padding).background(White), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Spacer(modifier = Modifier.height(48.dp))
-                Box(modifier = Modifier.size(120.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.size(120.dp)) {
                     if (user.profilePic.isNotEmpty()) {
                         AsyncImage(model = user.profilePic, contentDescription = "Foto", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
                     } else {
                         Surface(modifier = Modifier.fillMaxSize().clip(CircleShape), color = LightBlue) {
-                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, "Avatar", modifier = Modifier.size(70.dp), tint = PrimaryBlue) }
+                            Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Person, "Avatar", modifier = Modifier.size(70.dp), tint = PrimaryBlue) }
                         }
                     }
                 }
@@ -57,7 +59,6 @@ fun ProfileScreen(user: User?, isLoading: Boolean, onBackClick: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(user.info, style = MaterialTheme.typography.bodyLarge, color = Gray, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
-                Spacer(modifier = Modifier.height(48.dp))
             }
         }
     }

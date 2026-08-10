@@ -1,5 +1,6 @@
 package com.seend.app.ui.chats
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,50 +44,88 @@ fun ChatDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, "Volver", tint = Black) } },
-                title = {
-                    Row(modifier = Modifier.clickable { uiState.otherUser?.let { onProfileClick(it.id) } }, verticalAlignment = Alignment.CenterVertically) {
-                        Surface(modifier = Modifier.size(40.dp).clip(CircleShape), color = LightBlue) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(username.take(1).uppercase(), color = PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Column {
+                TopAppBar(
+                    navigationIcon = { IconButton(onClick = onBackClick) { Icon(Icons.Default.ArrowBack, "Volver", tint = Black) } },
+                    title = {
+                        Row(
+                            modifier = Modifier.clickable { uiState.otherUser?.let { onProfileClick(it.id) } },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Avatar con foto o iniciales
+                            Box(modifier = Modifier.size(40.dp)) {
+                                if (uiState.otherUser?.profilePic?.isNotEmpty() == true) {
+                                    AsyncImage(
+                                        model = uiState.otherUser!!.profilePic,
+                                        contentDescription = "Foto",
+                                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Surface(modifier = Modifier.fillMaxSize().clip(CircleShape), color = LightBlue) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(username.take(1).uppercase(), color = PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(username, style = MaterialTheme.typography.titleMedium, color = Black, fontWeight = FontWeight.Bold)
+                                AnimatedContent(
+                                    targetState = when {
+                                        uiState.isTyping -> "Escribiendo..."
+                                        uiState.otherUser?.isOnline == true -> "En línea"
+                                        uiState.otherUser?.lastSeen != null -> "Últ. vez ${uiState.otherUser!!.lastSeen!!.formatTime()}"
+                                        else -> ""
+                                    },
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() }
+                                ) { status ->
+                                    Text(status, style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 12.sp)
+                                }
                             }
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(username, style = MaterialTheme.typography.titleMedium, color = Black, fontWeight = FontWeight.Bold)
-                            Text(
-                                when {
-                                    uiState.isTyping -> "Escribiendo..."
-                                    uiState.otherUser?.isOnline == true -> "En línea"
-                                    uiState.otherUser?.lastSeen != null -> "Últ. vez ${uiState.otherUser!!.lastSeen!!.formatTime()}"
-                                    else -> ""
-                                },
-                                style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 12.sp
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = White)
-            )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = White)
+                )
+                Divider(color = LightGray, thickness = 0.5.dp)
+            }
         },
         bottomBar = {
-            Surface(shadowElevation = 8.dp, color = White) {
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Surface(shadowElevation = 4.dp, color = White) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedTextField(
-                        value = messageText, onValueChange = { messageText = it; viewModel.sendTyping(it.isNotEmpty()) },
-                        modifier = Modifier.weight(1f), placeholder = { Text("Escribe un mensaje...", color = Gray) },
+                        value = messageText,
+                        onValueChange = { messageText = it; viewModel.sendTyping(it.isNotEmpty()) },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Escribe un mensaje...", color = Gray) },
                         shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PrimaryBlue, unfocusedBorderColor = LightGray, focusedContainerColor = LightGray.copy(alpha = 0.3f), unfocusedContainerColor = LightGray.copy(alpha = 0.3f)),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryBlue,
+                            unfocusedBorderColor = LightGray,
+                            focusedContainerColor = White,
+                            unfocusedContainerColor = White
+                        ),
                         maxLines = 4
                     )
-                    if (messageText.isNotBlank()) {
-                        IconButton(onClick = {
-                            val receiverId = uiState.otherUser?.id ?: return@IconButton
-                            viewModel.sendMessage(messageText.trim(), receiverId)
-                            messageText = ""
-                            viewModel.sendTyping(false)
-                        }, modifier = Modifier.size(48.dp).clip(CircleShape).background(PrimaryBlue)) {
+                    AnimatedVisibility(
+                        visible = messageText.isNotBlank(),
+                        enter = scaleIn() + fadeIn(),
+                        exit = scaleOut() + fadeOut()
+                    ) {
+                        IconButton(
+                            onClick = {
+                                val receiverId = uiState.otherUser?.id ?: return@IconButton
+                                viewModel.sendMessage(messageText.trim(), receiverId)
+                                messageText = ""
+                                viewModel.sendTyping(false)
+                            },
+                            modifier = Modifier.size(48.dp).clip(CircleShape).background(PrimaryBlue)
+                        ) {
                             Icon(Icons.Default.Send, "Enviar", tint = White, modifier = Modifier.size(22.dp))
                         }
                     }
@@ -93,9 +133,19 @@ fun ChatDetailScreen(
             }
         }
     ) { padding ->
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(padding).background(LightGray.copy(alpha = 0.3f)), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(uiState.messages) { message ->
-                MessageBubble(message = message, isMine = message.senderId != uiState.otherUser?.id)
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize().padding(padding).background(LightGray.copy(alpha = 0.2f)),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(uiState.messages, key = { it.id }) { message ->
+                AnimatedVisibility(
+                    visible = true,
+                    enter = slideInVertically() + fadeIn()
+                ) {
+                    MessageBubble(message = message, isMine = message.senderId != uiState.otherUser?.id)
+                }
             }
         }
     }
@@ -103,25 +153,44 @@ fun ChatDetailScreen(
 
 @Composable
 fun MessageBubble(message: Message, isMine: Boolean) {
-    val bubbleColor = if (isMine) White else LightBlue
+    val bubbleColor = if (isMine) LightBlue.copy(alpha = 0.5f) else White
     val textColor = Black
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
+    
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
+    ) {
         Surface(
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = if (isMine) 16.dp else 4.dp, bottomEnd = if (isMine) 4.dp else 16.dp),
-            color = bubbleColor, shadowElevation = 1.dp, modifier = Modifier.widthIn(max = 280.dp)
+            shape = RoundedCornerShape(
+                topStart = 16.dp, topEnd = 16.dp,
+                bottomStart = if (isMine) 16.dp else 4.dp,
+                bottomEnd = if (isMine) 4.dp else 16.dp
+            ),
+            color = bubbleColor,
+            shadowElevation = 1.dp,
+            modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Text(message.content, style = MaterialTheme.typography.bodyLarge, color = textColor)
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (message.createdAt.isNotEmpty()) message.createdAt.formatTime() else "", style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 10.sp)
+                Row(
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        if (message.createdAt.isNotEmpty()) message.createdAt.formatTime() else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Gray,
+                        fontSize = 10.sp
+                    )
                     if (isMine) {
                         Spacer(modifier = Modifier.width(4.dp))
                         when (message.status) {
-                            MessageStatus.SENDING -> Icon(Icons.Default.Schedule, "Enviando", modifier = Modifier.size(14.dp), tint = Gray)
-                            MessageStatus.SENT -> Icon(Icons.Default.Check, "Enviado", modifier = Modifier.size(14.dp), tint = Gray)
-                            MessageStatus.DELIVERED -> Icon(Icons.Default.DoneAll, "Entregado", modifier = Modifier.size(14.dp), tint = Gray)
-                            MessageStatus.READ -> Icon(Icons.Default.DoneAll, "Leído", modifier = Modifier.size(14.dp), tint = ReadBlue)
+                            MessageStatus.SENDING -> Icon(Icons.Outlined.Schedule, "Enviando", modifier = Modifier.size(14.dp), tint = Gray)
+                            MessageStatus.SENT -> Icon(Icons.Outlined.Check, "Enviado", modifier = Modifier.size(14.dp), tint = Gray)
+                            MessageStatus.DELIVERED -> Icon(Icons.Outlined.DoneAll, "Entregado", modifier = Modifier.size(14.dp), tint = Gray)
+                            MessageStatus.READ -> Icon(Icons.Outlined.DoneAll, "Leído", modifier = Modifier.size(14.dp), tint = ReadBlue)
                         }
                     }
                 }
