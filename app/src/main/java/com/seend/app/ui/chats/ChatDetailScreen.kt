@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +26,7 @@ import coil.compose.AsyncImage
 import com.seend.app.data.model.Message
 import com.seend.app.data.model.MessageStatus
 import com.seend.app.ui.theme.*
+import com.seend.app.util.formatLastSeen
 import com.seend.app.util.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,7 +54,6 @@ fun ChatDetailScreen(
                             modifier = Modifier.clickable { uiState.otherUser?.let { onProfileClick(it.id) } },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Avatar con foto o iniciales
                             Box(modifier = Modifier.size(40.dp)) {
                                 if (uiState.otherUser?.profilePic?.isNotEmpty() == true) {
                                     AsyncImage(
@@ -76,7 +77,7 @@ fun ChatDetailScreen(
                                     targetState = when {
                                         uiState.isTyping -> "Escribiendo..."
                                         uiState.otherUser?.isOnline == true -> "En línea"
-                                        uiState.otherUser?.lastSeen != null -> "Últ. vez ${uiState.otherUser!!.lastSeen!!.formatLastSeen()}"
+                                        uiState.otherUser?.lastSeen != null -> uiState.otherUser!!.lastSeen!!.formatLastSeen()
                                         else -> ""
                                     },
                                     transitionSpec = { fadeIn() togetherWith fadeOut() }
@@ -90,28 +91,59 @@ fun ChatDetailScreen(
                 )
                 Divider(color = LightGray, thickness = 0.5.dp)
             }
-        },
-        bottomBar = {
-            Surface(shadowElevation = 4.dp, color = White) {
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Lista de mensajes
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().background(LightGray.copy(alpha = 0.2f)),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp, bottom = 72.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(uiState.messages, key = { it.id }) { message ->
+                    AnimatedVisibility(visible = true, enter = slideInVertically() + fadeIn()) {
+                        MessageBubble(message = message, isMine = message.senderId != uiState.otherUser?.id)
+                    }
+                }
+            }
+
+            // Barra de escritura flotante estilo Telegram/WhatsApp
+            Surface(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                color = White,
+                shadowElevation = 8.dp
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    OutlinedTextField(
-                        value = messageText,
-                        onValueChange = { messageText = it; viewModel.sendTyping(it.isNotEmpty()) },
+                    // Input redondeado
+                    Surface(
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Escribe un mensaje...", color = Gray) },
                         shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryBlue,
-                            unfocusedBorderColor = LightGray,
-                            focusedContainerColor = White,
-                            unfocusedContainerColor = White
-                        ),
-                        maxLines = 4
-                    )
+                        color = LightGray.copy(alpha = 0.5f)
+                    ) {
+                        TextField(
+                            value = messageText,
+                            onValueChange = { messageText = it; viewModel.sendTyping(it.isNotEmpty()) },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Mensaje", color = Gray) },
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor = PrimaryBlue,
+                                focusedTextColor = Black,
+                                unfocusedTextColor = Black
+                            ),
+                            maxLines = 4
+                        )
+                    }
+
+                    // Botón enviar circular (como Telegram/WhatsApp)
                     AnimatedVisibility(
                         visible = messageText.isNotBlank(),
                         enter = scaleIn() + fadeIn(),
@@ -129,22 +161,6 @@ fun ChatDetailScreen(
                             Icon(Icons.Default.Send, "Enviar", tint = White, modifier = Modifier.size(22.dp))
                         }
                     }
-                }
-            }
-        }
-    ) { padding ->
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize().padding(padding).background(LightGray.copy(alpha = 0.2f)),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            items(uiState.messages, key = { it.id }) { message ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically() + fadeIn()
-                ) {
-                    MessageBubble(message = message, isMine = message.senderId != uiState.otherUser?.id)
                 }
             }
         }
