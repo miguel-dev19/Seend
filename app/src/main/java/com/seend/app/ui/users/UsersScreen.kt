@@ -83,7 +83,7 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewMode
                             Text(
                                 text = when {
                                     user.isOnline -> "En línea"
-                                    user.lastSeen != null -> "Últ. vez ${user.lastSeen!!.formatDateTime()}"
+                                    user.lastSeen != null -> "Últ. vez ${user.lastSeen!!.formatLastSeen()}"
                                     else -> ""
                                 },
                                 style = MaterialTheme.typography.bodySmall,

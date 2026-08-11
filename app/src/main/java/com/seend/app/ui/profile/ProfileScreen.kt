@@ -54,7 +54,7 @@ fun ProfileScreen(user: User?, isLoading: Boolean, onBackClick: () -> Unit) {
                 Text(user.username, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = Black, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    when { user.isOnline -> "En línea"; user.lastSeen != null -> "Últ. vez ${user.lastSeen!!.formatDateTime()}"; else -> "" },
+                    when { user.isOnline -> "En línea"; user.lastSeen != null -> "Últ. vez ${user.lastSeen!!.formatLastSeen()}"; else -> "" },
                     style = MaterialTheme.typography.bodyMedium, color = if (user.isOnline) OnlineGreen else Gray, textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(12.dp))

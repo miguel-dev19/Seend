@@ -76,7 +76,7 @@ fun ChatDetailScreen(
                                     targetState = when {
                                         uiState.isTyping -> "Escribiendo..."
                                         uiState.otherUser?.isOnline == true -> "En línea"
-                                        uiState.otherUser?.lastSeen != null -> "Últ. vez ${uiState.otherUser!!.lastSeen!!.formatTime()}"
+                                        uiState.otherUser?.lastSeen != null -> "Últ. vez ${uiState.otherUser!!.lastSeen!!.formatLastSeen()}"
                                         else -> ""
                                     },
                                     transitionSpec = { fadeIn() togetherWith fadeOut() }
