@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.seend.app.data.model.User
 import com.seend.app.ui.theme.*
-import com.seend.app.util.formatDateTime
+import com.seend.app.util.formatLastSeen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

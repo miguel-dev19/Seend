@@ -1,7 +1,7 @@
 package com.seend.app.ui.chats
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
 import com.seend.app.data.local.OfflineMessage
@@ -9,7 +9,6 @@ import com.seend.app.data.local.OfflineQueueDao
 import com.seend.app.data.model.Message
 import com.seend.app.data.model.MessageStatus
 import com.seend.app.data.model.User
-import com.seend.app.data.model.WsReceiveMessage
 import com.seend.app.data.network.NetworkChangeMonitor
 import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
@@ -82,10 +81,7 @@ class ChatDetailViewModel(
         viewModelScope.launch {
             networkMonitor.networkChangeFlow.collect { event ->
                 _uiState.update { it.copy(
-                    connectionStatus = when {
-                        !event.isAvailable -> "Esperando red..."
-                        else -> "Conectado"
-                    }
+                    connectionStatus = if (!event.isAvailable) "Esperando red..." else "Conectado"
                 )}
             }
         }
@@ -102,29 +98,20 @@ class ChatDetailViewModel(
 
     fun sendMessage(content: String, receiverId: String) {
         val tempMessage = Message(
-            id = UUID.randomUUID().toString(),
-            chatId = chatId,
-            senderId = currentUserId ?: "",
-            content = content,
+            id = UUID.randomUUID().toString(), chatId = chatId,
+            senderId = currentUserId ?: "", content = content,
             status = MessageStatus.SENDING,
             createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
         )
         _uiState.update { it.copy(messages = it.messages + tempMessage) }
-        
         viewModelScope.launch {
             offlineQueue.insert(OfflineMessage(chatId = chatId, receiverId = receiverId, content = content))
         }
-        
         webSocketManager.sendMessage(chatId, content, receiverId)
     }
 
-    fun sendTyping(isTyping: Boolean) {
-        webSocketManager.sendTyping(chatId, isTyping)
-    }
-
-    fun sendReadReceipt(messageId: String) {
-        webSocketManager.sendReadReceipt(chatId, messageId)
-    }
+    fun sendTyping(isTyping: Boolean) { webSocketManager.sendTyping(chatId, isTyping) }
+    fun sendReadReceipt(messageId: String) { webSocketManager.sendReadReceipt(chatId, messageId) }
 
     private fun observeWebSocket() {
         viewModelScope.launch {
@@ -144,9 +131,7 @@ class ChatDetailViewModel(
                                             state.copy(messages = updated)
                                         } else state
                                     } else {
-                                        state.copy(messages = state.messages + Message(
-                                            msg.id, msg.chatId, msg.senderId, msg.content, newStatus, msg.createdAt
-                                        ))
+                                        state.copy(messages = state.messages + Message(msg.id, msg.chatId, msg.senderId, msg.content, newStatus, msg.createdAt))
                                     }
                                 }
                                 if (msg.senderId != currentUserId) sendReadReceipt(msg.id)
@@ -161,9 +146,7 @@ class ChatDetailViewModel(
                         wsMessage.messageId?.let { mid ->
                             _uiState.update { state ->
                                 state.copy(messages = state.messages.map {
-                                    if (it.id == mid && MessageStatus.READ.level > it.status.level)
-                                        it.copy(status = MessageStatus.READ)
-                                    else it
+                                    if (it.id == mid && MessageStatus.READ.level > it.status.level) it.copy(status = MessageStatus.READ) else it
                                 })
                             }
                         }
@@ -171,9 +154,7 @@ class ChatDetailViewModel(
                     "user_status" -> {
                         wsMessage.userId?.let { uid ->
                             _uiState.update { state ->
-                                state.copy(otherUser = state.otherUser?.copy(
-                                    isOnline = wsMessage.online ?: false, lastSeen = wsMessage.lastSeen
-                                ))
+                                state.copy(otherUser = state.otherUser?.copy(isOnline = wsMessage.online ?: false, lastSeen = wsMessage.lastSeen))
                             }
                         }
                     }

@@ -100,7 +100,7 @@ fun ChatDetailScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().background(LightGray.copy(alpha = 0.2f)),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp, bottom = 72.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp, ),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(uiState.messages, key = { it.id }) { message ->
