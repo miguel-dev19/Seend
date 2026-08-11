@@ -56,12 +56,7 @@ fun ChatDetailScreen(
                         ) {
                             Box(modifier = Modifier.size(40.dp)) {
                                 if (uiState.otherUser?.profilePic?.isNotEmpty() == true) {
-                                    AsyncImage(
-                                        model = uiState.otherUser!!.profilePic,
-                                        contentDescription = "Foto",
-                                        modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    AsyncImage(model = uiState.otherUser!!.profilePic, contentDescription = "Foto", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
                                 } else {
                                     Surface(modifier = Modifier.fillMaxSize().clip(CircleShape), color = LightBlue) {
                                         Box(contentAlignment = Alignment.Center) {
@@ -73,17 +68,24 @@ fun ChatDetailScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(username, style = MaterialTheme.typography.titleMedium, color = Black, fontWeight = FontWeight.Bold)
+                                
+                                // Estado: igual que la pantalla principal
                                 AnimatedContent(
-                                    targetState = when {
-                                        uiState.connectionStatus != "Conectado" -> uiState.connectionStatus
-                                        uiState.isTyping -> "Escribiendo..."
-                                        uiState.otherUser?.isOnline == true -> "En línea"
-                                        uiState.otherUser?.lastSeen != null -> uiState.otherUser!!.lastSeen!!.formatLastSeen()
-                                        else -> ""
-                                    },
-                                    transitionSpec = { fadeIn() togetherWith fadeOut() }
+                                    targetState = uiState.connectionStatus,
+                                    transitionSpec = { fadeIn() + slideInHorizontally() togetherWith fadeOut() + slideOutHorizontally() }
                                 ) { status ->
-                                    Text(status, style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 12.sp)
+                                    Text(
+                                        text = when {
+                                            status != "Conectado" -> status
+                                            uiState.isTyping -> "Escribiendo..."
+                                            uiState.otherUser?.isOnline == true -> "En línea"
+                                            uiState.otherUser?.lastSeen != null -> uiState.otherUser!!.lastSeen!!.formatLastSeen()
+                                            else -> ""
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Gray,
+                                        fontSize = 12.sp
+                                    )
                                 }
                             }
                         }
@@ -95,7 +97,6 @@ fun ChatDetailScreen(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Lista de mensajes
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().background(LightGray.copy(alpha = 0.2f)),
@@ -103,44 +104,28 @@ fun ChatDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(uiState.messages, key = { it.id }) { message ->
+                    AnimatedVisibility(visible = true, enter = slideInVertically() + fadeIn()) {
+                        MessageBubble(message = message, isMine = message.senderId != uiState.otherUser?.id)
+                    }
                 }
             }
 
-            // Barra de escritura flotante estilo Telegram/WhatsApp
-            Surface(
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
-                color = White,
-                shadowElevation = 8.dp
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    // Input redondeado
-                    Surface(
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(24.dp),
-                        color = LightGray.copy(alpha = 0.5f)
-                    ) {
+            Surface(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), color = White, shadowElevation = 8.dp) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(modifier = Modifier.weight(1f), shape = RoundedCornerShape(24.dp), color = LightGray.copy(alpha = 0.5f)) {
                         TextField(
                             value = messageText,
                             onValueChange = { messageText = it; viewModel.sendTyping(it.isNotEmpty()) },
                             modifier = Modifier.fillMaxWidth(),
                             placeholder = { Text("Mensaje", color = Gray) },
                             colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = PrimaryBlue,
-                                focusedTextColor = Black,
-                                unfocusedTextColor = Black
+                                focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                                cursorColor = PrimaryBlue, focusedTextColor = Black, unfocusedTextColor = Black
                             ),
                             maxLines = 4
                         )
                     }
-
                     IconButton(
                         onClick = {
                             if (messageText.isNotBlank()) {
@@ -150,13 +135,10 @@ fun ChatDetailScreen(
                                 viewModel.sendTyping(false)
                             }
                         },
-                        modifier = Modifier.size(48.dp).clip(CircleShape).background(
-                            if (messageText.isNotBlank()) PrimaryBlue else LightGray
-                        )
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(if (messageText.isNotBlank()) PrimaryBlue else LightGray)
                     ) {
                         Icon(Icons.Default.Send, "Enviar", tint = White, modifier = Modifier.size(22.dp))
                     }
-                    // Botón enviar circular (como Telegram/WhatsApp)
                 }
             }
         }
@@ -168,34 +150,16 @@ fun MessageBubble(message: Message, isMine: Boolean) {
     val bubbleColor = if (isMine) LightBlue.copy(alpha = 0.5f) else White
     val textColor = Black
     
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
-    ) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
         Surface(
-            shape = RoundedCornerShape(
-                topStart = 16.dp, topEnd = 16.dp,
-                bottomStart = if (isMine) 16.dp else 4.dp,
-                bottomEnd = if (isMine) 4.dp else 16.dp
-            ),
-            color = bubbleColor,
-            shadowElevation = 1.dp,
-            modifier = Modifier.widthIn(max = 280.dp)
+            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = if (isMine) 16.dp else 4.dp, bottomEnd = if (isMine) 4.dp else 16.dp),
+            color = bubbleColor, shadowElevation = 1.dp, modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Text(message.content, style = MaterialTheme.typography.bodyLarge, color = textColor)
                 Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        if (message.createdAt.isNotEmpty()) message.createdAt.formatTime() else "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Gray,
-                        fontSize = 10.sp
-                    )
+                Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (message.createdAt.isNotEmpty()) message.createdAt.formatTime() else "", style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 10.sp)
                     if (isMine) {
                         Spacer(modifier = Modifier.width(4.dp))
                         when (message.status) {
