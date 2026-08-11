@@ -74,18 +74,6 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewMode
                                     }
                                 }
                             }
-                            // Indicador online (puntito verde)
-                            if (user.isOnline) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .align(Alignment.BottomEnd)
-                                        .clip(CircleShape)
-                                        .background(White)
-                                        .padding(2.dp)
-                                ) {
-                                    Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(OnlineGreen))
-                                }
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
