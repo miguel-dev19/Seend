@@ -6,7 +6,6 @@ import com.seend.app.data.api.WebSocketManager
 import com.seend.app.data.model.User
 import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -52,16 +51,6 @@ class UsersViewModel(
         }
     }
 
-    // Sincronización periódica
-        viewModelScope.launch {
-            while (true) {
-                delay(30_000)
-                syncUsers()
-            }
-        }
-    }
-
-    // Escuchar cambios de estado de usuarios
     private fun observeWebSocket() {
         viewModelScope.launch {
             webSocketManager.messages.collect { ws ->
@@ -69,12 +58,8 @@ class UsersViewModel(
                     ws.userId?.let { uid ->
                         _uiState.update { state ->
                             state.copy(users = state.users.map { user ->
-                                if (user.id == uid) {
-                                    user.copy(
-                                        isOnline = ws.online ?: false,
-                                        lastSeen = ws.lastSeen
-                                    )
-                                } else user
+                                if (user.id == uid) user.copy(isOnline = ws.online ?: false, lastSeen = ws.lastSeen)
+                                else user
                             }.sortedWith(
                                 compareByDescending<User> { it.isOnline }
                                     .thenByDescending { it.lastSeen ?: "" }

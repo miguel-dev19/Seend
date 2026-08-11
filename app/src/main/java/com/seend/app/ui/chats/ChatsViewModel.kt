@@ -67,33 +67,19 @@ class ChatsViewModel(
         }
     }
 
-    // Sincronización periódica cada 30 segundos
-        viewModelScope.launch {
-            while (true) {
-                delay(30_000)
-                syncWithServer()
-            }
-        }
-    }
-
     private fun syncWithServer() {
         viewModelScope.launch {
             chatRepository.syncChats()
         }
     }
 
-    // Escuchar TODOS los eventos WebSocket
     private fun observeWebSocket() {
         viewModelScope.launch {
             webSocketManager.messages.collect { ws ->
                 when (ws.type) {
                     "message" -> {
                         ws.message?.let { msg ->
-                            // Actualizar último mensaje en Room
-                            chatRepository.updateLastMessage(
-                                msg.chatId, msg.content, msg.createdAt, msg.status
-                            )
-                            // También actualizar UI inmediatamente
+                            chatRepository.updateLastMessage(msg.chatId, msg.content, msg.createdAt, msg.status)
                             _uiState.update { state ->
                                 val updated = state.chats.map { chat ->
                                     if (chat.id == msg.chatId) {
@@ -101,8 +87,7 @@ class ChatsViewModel(
                                             lastMessage = msg.content,
                                             lastTime = msg.createdAt,
                                             lastMsgStatus = MessageStatus.valueOf(msg.status.uppercase()),
-                                            unreadCount = if (msg.senderId != chat.otherUser.id) 
-                                                chat.unreadCount + 1 else chat.unreadCount
+                                            unreadCount = if (msg.senderId != chat.otherUser.id) chat.unreadCount + 1 else chat.unreadCount
                                         )
                                     } else chat
                                 }
@@ -112,26 +97,18 @@ class ChatsViewModel(
                     }
                     "typing" -> {
                         ws.userId?.let { uid ->
-                            _uiState.update { state ->
-                                state.copy(typingUsers = state.typingUsers + (uid to (ws.typing ?: false)))
-                            }
+                            _uiState.update { state -> state.copy(typingUsers = state.typingUsers + (uid to (ws.typing ?: false))) }
                         }
                     }
                     "user_status" -> {
                         ws.userId?.let { uid ->
                             val online = ws.online ?: false
-                            // Actualizar estado online en la lista de chats
                             _uiState.update { state ->
                                 state.copy(
                                     onlineUsers = state.onlineUsers + (uid to online),
                                     chats = state.chats.map { chat ->
                                         if (chat.otherUser.id == uid) {
-                                            chat.copy(
-                                                otherUser = chat.otherUser.copy(
-                                                    isOnline = online,
-                                                    lastSeen = ws.lastSeen
-                                                )
-                                            )
+                                            chat.copy(otherUser = chat.otherUser.copy(isOnline = online, lastSeen = ws.lastSeen))
                                         } else chat
                                     }
                                 )
@@ -139,13 +116,11 @@ class ChatsViewModel(
                         }
                     }
                     "read_receipt" -> {
-                        // Actualizar estado a leído
-                        ws.messageId?.let { msgId ->
+                        ws.messageId?.let {
                             _uiState.update { state ->
                                 state.copy(chats = state.chats.map { chat ->
-                                    if (chat.lastMsgStatus == MessageStatus.DELIVERED) {
-                                        chat.copy(lastMsgStatus = MessageStatus.READ)
-                                    } else chat
+                                    if (chat.lastMsgStatus == MessageStatus.DELIVERED) chat.copy(lastMsgStatus = MessageStatus.READ)
+                                    else chat
                                 })
                             }
                         }
