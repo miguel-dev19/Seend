@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.seend.app.data.model.User
 import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class UsersUiState(
@@ -28,67 +26,42 @@ class UsersViewModel(
     val uiState: StateFlow<UsersUiState> = _uiState
 
     init {
-        loadUsers()
+        observeUsersFromRoom()
+        syncUsers()
     }
 
-    fun loadUsers() {
+    // Flow desde Room
+    private fun observeUsersFromRoom() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            
-            userRepository.getUsers().fold(
-                onSuccess = { users ->
-                    _uiState.update {
-                        it.copy(
-                            users = users,
-                            filteredUsers = filterUsers(users, it.searchQuery),
-                            isLoading = false,
-                            error = null
-                        )
-                    }
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(isLoading = false, error = error.message)
-                    }
-                }
-            )
-        }
-    }
-
-    fun onSearchQueryChanged(query: String) {
-        _uiState.update {
-            it.copy(
-                searchQuery = query,
-                filteredUsers = filterUsers(it.users, query)
-            )
-        }
-    }
-
-    private fun filterUsers(users: List<User>, query: String): List<User> {
-        return if (query.isBlank()) {
-            users
-        } else {
-            users.filter { user ->
-                user.username.contains(query, ignoreCase = true)
+            userRepository.getUsersFlow().collect { users ->
+                _uiState.update { it.copy(users = users, filteredUsers = filterUsers(users, it.searchQuery)) }
             }
         }
     }
 
-    fun createChat(userId: String) {
+    // Sincronizar en background
+    private fun syncUsers() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            
+            userRepository.syncUsers()
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        _uiState.update { it.copy(searchQuery = query, filteredUsers = filterUsers(it.users, query)) }
+    }
+
+    private fun filterUsers(users: List<User>, query: String): List<User> {
+        return if (query.isBlank()) users
+        else users.filter { it.username.contains(query, ignoreCase = true) }
+    }
+
+    fun createChat(userId: String) {
+        viewModelScope.launch {
             chatRepository.createOrGetChat(userId).fold(
-                onSuccess = { chatId ->
-                    _uiState.update {
-                        it.copy(isLoading = false, createdChatId = chatId)
-                    }
-                },
-                onFailure = { error ->
-                    _uiState.update {
-                        it.copy(isLoading = false, error = error.message)
-                    }
-                }
+                onSuccess = { chatId -> _uiState.update { it.copy(createdChatId = chatId) } },
+                onFailure = { e -> _uiState.update { it.copy(error = e.message) } }
             )
         }
     }

@@ -5,6 +5,8 @@ import com.seend.app.data.local.SeendDatabase
 import com.seend.app.data.local.UserEntity
 import com.seend.app.data.model.User
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class UserRepository(
@@ -12,7 +14,15 @@ class UserRepository(
     private val db: SeendDatabase
 ) {
     
-    suspend fun getUsers(): Result<List<User>> {
+    // Flow desde Room: la UI se actualiza automáticamente
+    fun getUsersFlow(): Flow<List<User>> {
+        return db.userDao().getAllUsersFlow().map { entities ->
+            entities.map { it.toModel() }
+        }
+    }
+    
+    // Sincronizar con servidor en background
+    suspend fun syncUsers(): Result<List<User>> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = api.getUsers()
@@ -39,13 +49,20 @@ class UserRepository(
                     db.userDao().upsertUser(user.toEntity())
                     Result.success(user)
                 } else {
-                    val local = db.userDao().getUserById(userId)
-                    if (local != null) Result.success(local.toModel())
-                    else Result.failure(Exception("Usuario no encontrado"))
+                    loadLocalUser(userId)
                 }
             } catch (e: Exception) {
-                Result.failure(e)
+                loadLocalUser(userId)
             }
+        }
+    }
+    
+    private suspend fun loadLocalUser(userId: String): Result<User> {
+        val local = db.userDao().getUserById(userId)
+        return if (local != null) {
+            Result.success(local.toModel())
+        } else {
+            Result.failure(Exception("Usuario no encontrado"))
         }
     }
 }

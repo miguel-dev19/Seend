@@ -4,7 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
-import com.seend.app.data.local.ChatEntity
 import com.seend.app.data.model.Chat
 import com.seend.app.data.model.MessageStatus
 import com.seend.app.data.network.ConnectionManager
@@ -36,9 +35,18 @@ class ChatsViewModel(
     private val connectionManager = ConnectionManager(application)
 
     init {
+        observeChatsFromRoom()  // Flow desde BD local
         monitorNetwork()
-        loadChats()
         observeWebSocket()
+    }
+
+    // Suscribirse a Room: UI se actualiza automáticamente
+    private fun observeChatsFromRoom() {
+        viewModelScope.launch {
+            chatRepository.getChatsFlow().collect { chats ->
+                _uiState.update { it.copy(chats = chats) }
+            }
+        }
     }
 
     private fun monitorNetwork() {
@@ -51,7 +59,7 @@ class ChatsViewModel(
                     _uiState.update { it.copy(connectionStatus = "Conectando...") }
                     delay(1000)
                     _uiState.update { it.copy(connectionStatus = "Actualizando...") }
-                    loadChats()
+                    syncWithServer()  // Sincronizar en background
                     delay(500)
                     _uiState.update { it.copy(connectionStatus = "Seend", connectionType = connectionManager.getCurrentSpeedLabel()) }
                 }
@@ -59,13 +67,10 @@ class ChatsViewModel(
         }
     }
 
-    fun loadChats() {
+    // Sincronizar con servidor sin bloquear UI
+    private fun syncWithServer() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            chatRepository.getChats().fold(
-                onSuccess = { chats -> _uiState.update { it.copy(chats = chats, isLoading = false, error = null) } },
-                onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } }
-            )
+            chatRepository.syncChats()
         }
     }
 
@@ -75,19 +80,10 @@ class ChatsViewModel(
                 when (ws.type) {
                     "message" -> {
                         ws.message?.let { msg ->
-                            _uiState.update { state ->
-                                val updated = state.chats.map { chat ->
-                                    if (chat.id == msg.chatId) {
-                                        chat.copy(
-                                            lastMessage = msg.content,
-                                            lastTime = msg.createdAt,
-                                            lastMsgStatus = MessageStatus.valueOf(msg.status.uppercase()),
-                                            unreadCount = if (msg.senderId != chat.otherUser.id) chat.unreadCount + 1 else chat.unreadCount
-                                        )
-                                    } else chat
-                                }
-                                state.copy(chats = updated)
-                            }
+                            // Actualizar último mensaje en Room
+                            chatRepository.updateLastMessage(
+                                msg.chatId, msg.content, msg.createdAt, msg.status
+                            )
                         }
                     }
                     "typing" -> {
@@ -100,7 +96,14 @@ class ChatsViewModel(
         }
     }
 
-    fun refreshChats() { loadChats() }
+    fun refreshChats() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(connectionStatus = "Actualizando...") }
+            syncWithServer()
+            delay(500)
+            _uiState.update { it.copy(connectionStatus = "Seend") }
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()
