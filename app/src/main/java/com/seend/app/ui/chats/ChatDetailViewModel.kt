@@ -13,9 +13,7 @@ import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
 import com.seend.app.di.AppModule
 import com.seend.app.util.TokenManager
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -37,24 +35,42 @@ class ChatDetailViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChatDetailUiState())
-    val uiState: StateFlow<ChatDetailUiState> = _uiState
+    val uiState: StateFlow<ChatDetailUiState> = _uiState.asStateFlow()
 
     private val currentUserId = TokenManager.getUserId()
     private val offlineQueue: OfflineQueueDao = AppModule.provideDatabase().offlineQueueDao()
 
     init {
-        loadMessages()
+        observeMessagesFromRoom()  // Flow desde Room
+        syncMessages()             // Sincronizar con servidor
         observeWebSocket()
-        sendPendingOffline()
+        observePendingCount()
     }
 
-    fun loadMessages() {
+    // Flow: mensajes desde Room se actualizan solos
+    private fun observeMessagesFromRoom() {
+        viewModelScope.launch {
+            chatRepository.getMessagesFlow(chatId).collect { messages ->
+                _uiState.update { it.copy(messages = messages) }
+            }
+        }
+    }
+
+    // Sincronizar con servidor en background
+    private fun syncMessages() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            chatRepository.getMessages(chatId).fold(
-                onSuccess = { messages -> _uiState.update { it.copy(messages = messages, isLoading = false) } },
-                onFailure = { _uiState.update { it.copy(isLoading = false) } }
-            )
+            chatRepository.syncMessages(chatId)
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    // Flow: mensajes pendientes en cola offline
+    private fun observePendingCount() {
+        viewModelScope.launch {
+            offlineQueue.getPendingFlow().collect { pending ->
+                _uiState.update { it.copy(pendingCount = pending.size) }
+            }
         }
     }
 
@@ -78,11 +94,8 @@ class ChatDetailViewModel(
         )
         _uiState.update { it.copy(messages = it.messages + tempMessage) }
         
-        // Guardar en cola offline por si falla
         viewModelScope.launch {
-            offlineQueue.insert(
-                OfflineMessage(chatId = chatId, receiverId = receiverId, content = content)
-            )
+            offlineQueue.insert(OfflineMessage(chatId = chatId, receiverId = receiverId, content = content))
         }
         
         webSocketManager.sendMessage(chatId, content, receiverId)
@@ -108,7 +121,6 @@ class ChatDetailViewModel(
                                     val existing = state.messages.indexOfFirst { it.id == msg.id }
                                     if (existing >= 0) {
                                         val current = state.messages[existing]
-                                        // Estado progresivo: solo actualiza si es mayor
                                         if (newStatus.level > current.status.level) {
                                             val updated = state.messages.toMutableList()
                                             updated[existing] = current.copy(status = newStatus)
@@ -150,13 +162,6 @@ class ChatDetailViewModel(
                     }
                 }
             }
-        }
-    }
-    
-    private fun sendPendingOffline() {
-        viewModelScope.launch {
-            val pending = offlineQueue.getPending()
-            _uiState.update { it.copy(pendingCount = pending.size) }
         }
     }
 }

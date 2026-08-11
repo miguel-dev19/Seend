@@ -10,8 +10,6 @@ import kotlinx.coroutines.launch
 
 data class UsersUiState(
     val users: List<User> = emptyList(),
-    val filteredUsers: List<User> = emptyList(),
-    val searchQuery: String = "",
     val isLoading: Boolean = false,
     val error: String? = null,
     val createdChatId: String? = null
@@ -30,11 +28,15 @@ class UsersViewModel(
         syncUsers()
     }
 
-    // Flow desde Room
+    // Flow desde Room: ordenados por online primero, luego última conexión
     private fun observeUsersFromRoom() {
         viewModelScope.launch {
             userRepository.getUsersFlow().collect { users ->
-                _uiState.update { it.copy(users = users, filteredUsers = filterUsers(users, it.searchQuery)) }
+                val sorted = users.sortedWith(
+                    compareByDescending<User> { it.isOnline }
+                        .thenByDescending { it.lastSeen ?: "" }
+                )
+                _uiState.update { it.copy(users = sorted) }
             }
         }
     }
@@ -46,15 +48,6 @@ class UsersViewModel(
             userRepository.syncUsers()
             _uiState.update { it.copy(isLoading = false) }
         }
-    }
-
-    fun onSearchQueryChanged(query: String) {
-        _uiState.update { it.copy(searchQuery = query, filteredUsers = filterUsers(it.users, query)) }
-    }
-
-    private fun filterUsers(users: List<User>, query: String): List<User> {
-        return if (query.isBlank()) users
-        else users.filter { it.username.contains(query, ignoreCase = true) }
     }
 
     fun createChat(userId: String) {

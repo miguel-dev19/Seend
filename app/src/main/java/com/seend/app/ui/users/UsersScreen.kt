@@ -17,15 +17,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.seend.app.ui.theme.*
+import com.seend.app.util.formatDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewModel: UsersViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Validar que chatId no sea vacío antes de navegar
     LaunchedEffect(uiState.createdChatId) {
         uiState.createdChatId?.let { chatId ->
             if (chatId.isNotEmpty()) {
@@ -62,6 +63,7 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewMode
                         modifier = Modifier.fillMaxWidth().clickable { viewModel.createChat(user.id) }.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Avatar
                         Box(modifier = Modifier.size(56.dp)) {
                             if (user.profilePic.isNotEmpty()) {
                                 AsyncImage(model = user.profilePic, contentDescription = "Foto", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
@@ -72,11 +74,36 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewMode
                                     }
                                 }
                             }
+                            // Indicador online (puntito verde)
+                            if (user.isOnline) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .clip(CircleShape)
+                                        .background(White)
+                                        .padding(2.dp)
+                                ) {
+                                    Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(OnlineGreen))
+                                }
+                            }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(user.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Black)
-                            Text(user.info, style = MaterialTheme.typography.bodySmall, color = Gray, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            // Estado: Online o última vez
+                            Text(
+                                text = when {
+                                    user.isOnline -> "En línea"
+                                    user.lastSeen != null -> "Últ. vez ${user.lastSeen!!.formatDateTime()}"
+                                    else -> ""
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (user.isOnline) OnlineGreen else Gray,
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
                     Divider(color = LightGray, thickness = 0.5.dp)
