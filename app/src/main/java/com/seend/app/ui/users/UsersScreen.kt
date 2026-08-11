@@ -63,7 +63,6 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewMode
                         modifier = Modifier.fillMaxWidth().clickable { viewModel.createChat(user.id) }.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Avatar
                         Box(modifier = Modifier.size(56.dp)) {
                             if (user.profilePic.isNotEmpty()) {
                                 AsyncImage(model = user.profilePic, contentDescription = "Foto", modifier = Modifier.fillMaxSize().clip(CircleShape), contentScale = ContentScale.Crop)
@@ -74,12 +73,10 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewMode
                                     }
                                 }
                             }
-                            }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(user.username, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = Black)
-                            // Estado: Online o última vez
                             Text(
                                 text = when {
                                     user.isOnline -> "En línea"
