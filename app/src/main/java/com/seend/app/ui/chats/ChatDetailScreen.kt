@@ -102,9 +102,6 @@ fun ChatDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(uiState.messages, key = { it.id }) { message ->
-                    AnimatedVisibility(visible = true, enter = slideInVertically() + fadeIn()) {
-                        MessageBubble(message = message, isMine = message.senderId != uiState.otherUser?.id)
-                    }
                 }
             }
 
@@ -143,24 +140,22 @@ fun ChatDetailScreen(
                         )
                     }
 
-                    // Botón enviar circular (como Telegram/WhatsApp)
-                    AnimatedVisibility(
-                        visible = messageText.isNotBlank(),
-                        enter = scaleIn() + fadeIn(),
-                        exit = scaleOut() + fadeOut()
-                    ) {
-                        IconButton(
-                            onClick = {
+                    IconButton(
+                        onClick = {
+                            if (messageText.isNotBlank()) {
                                 val receiverId = uiState.otherUser?.id ?: return@IconButton
                                 viewModel.sendMessage(messageText.trim(), receiverId)
                                 messageText = ""
                                 viewModel.sendTyping(false)
-                            },
-                            modifier = Modifier.size(48.dp).clip(CircleShape).background(PrimaryBlue)
-                        ) {
-                            Icon(Icons.Default.Send, "Enviar", tint = White, modifier = Modifier.size(22.dp))
-                        }
+                            }
+                        },
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(
+                            if (messageText.isNotBlank()) PrimaryBlue else LightGray
+                        )
+                    ) {
+                        Icon(Icons.Default.Send, "Enviar", tint = White, modifier = Modifier.size(22.dp))
                     }
+                    // Botón enviar circular (como Telegram/WhatsApp)
                 }
             }
         }
