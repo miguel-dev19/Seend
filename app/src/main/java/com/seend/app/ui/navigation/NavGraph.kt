@@ -69,7 +69,9 @@ fun NavGraph() {
         composable(Routes.USERS) {
             val userRepository = remember { AppModule.provideUserRepository() }
             val chatRepository = remember { AppModule.provideChatRepository() }
-            val usersViewModel: UsersViewModel = viewModel(factory = UsersViewModelFactory(userRepository, chatRepository))
+            val usersViewModel: UsersViewModel = viewModel(
+                factory = UsersViewModelFactory(userRepository, chatRepository, webSocketManager)
+            )
             UsersScreen(
                 onBackClick = { navController.popBackStack() },
                 onUserClick = { chatId ->
@@ -85,9 +87,7 @@ fun NavGraph() {
         composable(route = Routes.CHAT_DETAIL, arguments = listOf(navArgument("chatId") { type = NavType.StringType }, navArgument("username") { type = NavType.StringType })) { entry ->
             val chatId = entry.arguments?.getString("chatId") ?: ""
             val username = entry.arguments?.getString("username") ?: ""
-            
             if (chatId.isEmpty()) {
-                // Si chatId es vacío, volver a chats
                 LaunchedEffect(Unit) { navController.popBackStack() }
             } else {
                 val chatRepository = remember { AppModule.provideChatRepository() }
