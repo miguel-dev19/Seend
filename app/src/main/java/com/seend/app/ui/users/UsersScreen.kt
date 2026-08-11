@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +25,7 @@ import com.seend.app.ui.theme.*
 fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewModel: UsersViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // Validar que chatId no sea vacío antes de navegar
     LaunchedEffect(uiState.createdChatId) {
         uiState.createdChatId?.let { chatId ->
             if (chatId.isNotEmpty()) {
@@ -53,10 +53,7 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String) -> Unit, viewMode
             }
         } else if (uiState.users.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding).background(White), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Outlined.Person, null, modifier = Modifier.size(64.dp), tint = Gray)
-                    Text("No se encontraron usuarios", style = MaterialTheme.typography.bodyLarge, color = Gray)
-                }
+                Text("No se encontraron usuarios", style = MaterialTheme.typography.bodyLarge, color = Gray)
             }
         } else {
             LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).background(White)) {

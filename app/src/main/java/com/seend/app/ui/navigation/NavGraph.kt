@@ -1,6 +1,5 @@
 package com.seend.app.ui.navigation
 
-import androidx.compose.animation.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,14 +37,7 @@ fun NavGraph() {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
     val startDestination = if (isLoggedIn) Routes.CHATS else Routes.WELCOME
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-        enterTransition = { fadeIn() + slideInHorizontally() },
-        exitTransition = { fadeOut() + slideOutHorizontally() },
-        popEnterTransition = { fadeIn() + slideInHorizontally(initialOffsetX = { -it }) },
-        popExitTransition = { fadeOut() + slideOutHorizontally(targetOffsetX = { -it }) }
-    ) {
+    NavHost(navController = navController, startDestination = startDestination) {
         composable(Routes.WELCOME) {
             WelcomeScreen(onContinueClick = { navController.navigate(Routes.LOGIN) })
         }
@@ -66,21 +58,43 @@ fun NavGraph() {
         composable(Routes.CHATS) {
             val chatRepository = remember { AppModule.provideChatRepository() }
             val chatsViewModel: ChatsViewModel = viewModel(factory = ChatsViewModelFactory(application, chatRepository, webSocketManager))
-            ChatsScreen(onChatClick = { chatId, username -> navController.navigate(Routes.chatDetail(chatId, username)) }, onNewChatClick = { navController.navigate(Routes.USERS) }, viewModel = chatsViewModel)
+            ChatsScreen(
+                onChatClick = { chatId, username ->
+                    if (chatId.isNotEmpty()) navController.navigate(Routes.chatDetail(chatId, username))
+                },
+                onNewChatClick = { navController.navigate(Routes.USERS) },
+                viewModel = chatsViewModel
+            )
         }
         composable(Routes.USERS) {
             val userRepository = remember { AppModule.provideUserRepository() }
             val chatRepository = remember { AppModule.provideChatRepository() }
             val usersViewModel: UsersViewModel = viewModel(factory = UsersViewModelFactory(userRepository, chatRepository))
-            UsersScreen(onBackClick = { navController.popBackStack() }, onUserClick = { chatId -> navController.navigate(Routes.chatDetail(chatId, "")) { popUpTo(Routes.CHATS) } }, viewModel = usersViewModel)
+            UsersScreen(
+                onBackClick = { navController.popBackStack() },
+                onUserClick = { chatId ->
+                    if (chatId.isNotEmpty()) {
+                        navController.navigate(Routes.chatDetail(chatId, "")) {
+                            popUpTo(Routes.CHATS)
+                        }
+                    }
+                },
+                viewModel = usersViewModel
+            )
         }
         composable(route = Routes.CHAT_DETAIL, arguments = listOf(navArgument("chatId") { type = NavType.StringType }, navArgument("username") { type = NavType.StringType })) { entry ->
             val chatId = entry.arguments?.getString("chatId") ?: ""
             val username = entry.arguments?.getString("username") ?: ""
-            val chatRepository = remember { AppModule.provideChatRepository() }
-            val userRepository = remember { AppModule.provideUserRepository() }
-            val vm: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(chatId, chatRepository, userRepository, webSocketManager))
-            ChatDetailScreen(chatId = chatId, username = username, onBackClick = { navController.popBackStack() }, onProfileClick = { userId -> navController.navigate(Routes.profile(userId)) }, viewModel = vm)
+            
+            if (chatId.isEmpty()) {
+                // Si chatId es vacío, volver a chats
+                LaunchedEffect(Unit) { navController.popBackStack() }
+            } else {
+                val chatRepository = remember { AppModule.provideChatRepository() }
+                val userRepository = remember { AppModule.provideUserRepository() }
+                val vm: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(chatId, chatRepository, userRepository, webSocketManager))
+                ChatDetailScreen(chatId = chatId, username = username, onBackClick = { navController.popBackStack() }, onProfileClick = { userId -> navController.navigate(Routes.profile(userId)) }, viewModel = vm)
+            }
         }
         composable(route = Routes.PROFILE, arguments = listOf(navArgument("userId") { type = NavType.StringType })) { entry ->
             val userId = entry.arguments?.getString("userId") ?: ""
