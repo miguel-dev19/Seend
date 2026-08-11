@@ -1,6 +1,7 @@
 package com.seend.app.ui.chats
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
 import com.seend.app.data.local.OfflineMessage
@@ -9,6 +10,7 @@ import com.seend.app.data.model.Message
 import com.seend.app.data.model.MessageStatus
 import com.seend.app.data.model.User
 import com.seend.app.data.model.WsReceiveMessage
+import com.seend.app.data.network.NetworkChangeMonitor
 import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
 import com.seend.app.di.AppModule
@@ -24,10 +26,12 @@ data class ChatDetailUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isTyping: Boolean = false,
-    val pendingCount: Int = 0
+    val pendingCount: Int = 0,
+    val connectionStatus: String = "Conectado"
 )
 
 class ChatDetailViewModel(
+    application: Application,
     private val chatId: String,
     private val chatRepository: ChatRepository,
     private val userRepository: UserRepository,
@@ -39,15 +43,16 @@ class ChatDetailViewModel(
 
     private val currentUserId = TokenManager.getUserId()
     private val offlineQueue: OfflineQueueDao = AppModule.provideDatabase().offlineQueueDao()
+    private val networkMonitor = NetworkChangeMonitor(application)
 
     init {
-        observeMessagesFromRoom()  // Flow desde Room
-        syncMessages()             // Sincronizar con servidor
+        observeMessagesFromRoom()
+        syncMessages()
         observeWebSocket()
         observePendingCount()
+        monitorNetwork()
     }
 
-    // Flow: mensajes desde Room se actualizan solos
     private fun observeMessagesFromRoom() {
         viewModelScope.launch {
             chatRepository.getMessagesFlow(chatId).collect { messages ->
@@ -56,7 +61,6 @@ class ChatDetailViewModel(
         }
     }
 
-    // Sincronizar con servidor en background
     private fun syncMessages() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -65,11 +69,24 @@ class ChatDetailViewModel(
         }
     }
 
-    // Flow: mensajes pendientes en cola offline
     private fun observePendingCount() {
         viewModelScope.launch {
             offlineQueue.getPendingFlow().collect { pending ->
                 _uiState.update { it.copy(pendingCount = pending.size) }
+            }
+        }
+    }
+
+    private fun monitorNetwork() {
+        networkMonitor.startMonitoring()
+        viewModelScope.launch {
+            networkMonitor.networkChangeFlow.collect { event ->
+                _uiState.update { it.copy(
+                    connectionStatus = when {
+                        !event.isAvailable -> "Esperando red..."
+                        else -> "Conectado"
+                    }
+                )}
             }
         }
     }

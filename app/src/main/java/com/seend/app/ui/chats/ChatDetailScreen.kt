@@ -75,6 +75,7 @@ fun ChatDetailScreen(
                                 Text(username, style = MaterialTheme.typography.titleMedium, color = Black, fontWeight = FontWeight.Bold)
                                 AnimatedContent(
                                     targetState = when {
+                                        uiState.connectionStatus != "Conectado" -> uiState.connectionStatus
                                         uiState.isTyping -> "Escribiendo..."
                                         uiState.otherUser?.isOnline == true -> "En línea"
                                         uiState.otherUser?.lastSeen != null -> uiState.otherUser!!.lastSeen!!.formatLastSeen()
