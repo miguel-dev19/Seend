@@ -39,7 +39,6 @@ class ChatsViewModel(
         observeChatsFromRoom()
         monitorNetwork()
         observeWebSocket()
-        startPeriodicSync()
     }
 
     private fun observeChatsFromRoom() {
@@ -69,7 +68,6 @@ class ChatsViewModel(
     }
 
     // Sincronización periódica cada 30 segundos
-    private fun startPeriodicSync() {
         viewModelScope.launch {
             while (true) {
                 delay(30_000)

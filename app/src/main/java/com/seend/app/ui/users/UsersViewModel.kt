@@ -30,7 +30,6 @@ class UsersViewModel(
         observeUsersFromRoom()
         syncUsers()
         observeWebSocket()
-        startPeriodicSync()
     }
 
     private fun observeUsersFromRoom() {
@@ -54,7 +53,6 @@ class UsersViewModel(
     }
 
     // Sincronización periódica
-    private fun startPeriodicSync() {
         viewModelScope.launch {
             while (true) {
                 delay(30_000)
