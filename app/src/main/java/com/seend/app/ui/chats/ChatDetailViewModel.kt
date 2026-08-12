@@ -32,6 +32,7 @@ data class ChatDetailUiState(
 class ChatDetailViewModel(
     application: Application,
     private val chatId: String,
+    private val username: String,
     private val chatRepository: ChatRepository,
     private val userRepository: UserRepository,
     private val webSocketManager: WebSocketManager
@@ -46,16 +47,31 @@ class ChatDetailViewModel(
 
     init {
         observeMessagesFromRoom()
+        observeOtherUserFromRoom()
         syncMessages()
+        syncOtherUserProfile()
         observeWebSocket()
         observePendingCount()
         monitorNetwork()
     }
 
+    // Flow: mensajes desde Room
     private fun observeMessagesFromRoom() {
         viewModelScope.launch {
             chatRepository.getMessagesFlow(chatId).collect { messages ->
                 _uiState.update { it.copy(messages = messages) }
+            }
+        }
+    }
+
+    // Flow: observar perfil del otro usuario desde Room
+    private fun observeOtherUserFromRoom() {
+        viewModelScope.launch {
+            userRepository.getUsersFlow().collect { users ->
+                val found = users.find { it.username == username }
+                if (found != null) {
+                    _uiState.update { it.copy(otherUser = found) }
+                }
             }
         }
     }
@@ -65,6 +81,18 @@ class ChatDetailViewModel(
             _uiState.update { it.copy(isLoading = true) }
             chatRepository.syncMessages(chatId)
             _uiState.update { it.copy(isLoading = false) }
+        }
+    }
+
+    // Sincronizar perfil del otro usuario con servidor
+    private fun syncOtherUserProfile() {
+        viewModelScope.launch {
+            _uiState.value.otherUser?.let { user ->
+                userRepository.getUserProfile(user.id).fold(
+                    onSuccess = { updated -> _uiState.update { it.copy(otherUser = updated) } },
+                    onFailure = {}
+                )
+            }
         }
     }
 
@@ -87,16 +115,8 @@ class ChatDetailViewModel(
         }
     }
 
-    fun loadUserProfile(userId: String) {
-        viewModelScope.launch {
-            userRepository.getUserProfile(userId).fold(
-                onSuccess = { user -> _uiState.update { it.copy(otherUser = user) } },
-                onFailure = {}
-            )
-        }
-    }
-
-    fun sendMessage(content: String, receiverId: String) {
+    fun sendMessage(content: String) {
+        val receiverId = _uiState.value.otherUser?.id ?: ""
         val tempMessage = Message(
             id = UUID.randomUUID().toString(), chatId = chatId,
             senderId = currentUserId ?: "", content = content,
@@ -107,7 +127,9 @@ class ChatDetailViewModel(
         viewModelScope.launch {
             offlineQueue.insert(OfflineMessage(chatId = chatId, receiverId = receiverId, content = content))
         }
-        webSocketManager.sendMessage(chatId, content, receiverId)
+        if (receiverId.isNotEmpty()) {
+            webSocketManager.sendMessage(chatId, content, receiverId)
+        }
     }
 
     fun sendTyping(isTyping: Boolean) { webSocketManager.sendTyping(chatId, isTyping) }

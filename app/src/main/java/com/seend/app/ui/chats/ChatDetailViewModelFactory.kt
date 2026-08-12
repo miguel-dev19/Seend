@@ -10,6 +10,7 @@ import com.seend.app.data.repository.UserRepository
 class ChatDetailViewModelFactory(
     private val application: Application,
     private val chatId: String,
+    private val username: String,
     private val chatRepository: ChatRepository,
     private val userRepository: UserRepository,
     private val webSocketManager: WebSocketManager
@@ -18,7 +19,7 @@ class ChatDetailViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ChatDetailViewModel::class.java)) {
-            return ChatDetailViewModel(application, chatId, chatRepository, userRepository, webSocketManager) as T
+            return ChatDetailViewModel(application, chatId, username, chatRepository, userRepository, webSocketManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

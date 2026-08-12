@@ -68,8 +68,6 @@ fun ChatDetailScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(username, style = MaterialTheme.typography.titleMedium, color = Black, fontWeight = FontWeight.Bold)
-                                
-                                // Estado: igual que la pantalla principal
                                 AnimatedContent(
                                     targetState = uiState.connectionStatus,
                                     transitionSpec = { fadeIn() + slideInHorizontally() togetherWith fadeOut() + slideOutHorizontally() }
@@ -82,9 +80,7 @@ fun ChatDetailScreen(
                                             uiState.otherUser?.lastSeen != null -> uiState.otherUser!!.lastSeen!!.formatLastSeen()
                                             else -> ""
                                         },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Gray,
-                                        fontSize = 12.sp
+                                        style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 12.sp
                                     )
                                 }
                             }
@@ -100,7 +96,7 @@ fun ChatDetailScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().background(LightGray.copy(alpha = 0.2f)),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp, ),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(uiState.messages, key = { it.id }) { message ->
@@ -129,8 +125,7 @@ fun ChatDetailScreen(
                     IconButton(
                         onClick = {
                             if (messageText.isNotBlank()) {
-                                val receiverId = uiState.otherUser?.id ?: return@IconButton
-                                viewModel.sendMessage(messageText.trim(), receiverId)
+                                viewModel.sendMessage(messageText.trim())
                                 messageText = ""
                                 viewModel.sendTyping(false)
                             }
@@ -148,15 +143,13 @@ fun ChatDetailScreen(
 @Composable
 fun MessageBubble(message: Message, isMine: Boolean) {
     val bubbleColor = if (isMine) LightBlue.copy(alpha = 0.5f) else White
-    val textColor = Black
-    
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start) {
         Surface(
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = if (isMine) 16.dp else 4.dp, bottomEnd = if (isMine) 4.dp else 16.dp),
             color = bubbleColor, shadowElevation = 1.dp, modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                Text(message.content, style = MaterialTheme.typography.bodyLarge, color = textColor)
+                Text(message.content, style = MaterialTheme.typography.bodyLarge, color = Black)
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     Text(if (message.createdAt.isNotEmpty()) message.createdAt.formatTime() else "", style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 10.sp)

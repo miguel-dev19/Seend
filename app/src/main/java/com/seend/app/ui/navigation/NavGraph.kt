@@ -74,9 +74,9 @@ fun NavGraph() {
             )
             UsersScreen(
                 onBackClick = { navController.popBackStack() },
-                onUserClick = { chatId ->
+                onUserClick = { chatId, username ->
                     if (chatId.isNotEmpty()) {
-                        navController.navigate(Routes.chatDetail(chatId, "")) {
+                        navController.navigate(Routes.chatDetail(chatId, username)) {
                             popUpTo(Routes.CHATS)
                         }
                     }
@@ -92,7 +92,7 @@ fun NavGraph() {
             } else {
                 val chatRepository = remember { AppModule.provideChatRepository() }
                 val userRepository = remember { AppModule.provideUserRepository() }
-                val vm: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(application, chatId, chatRepository, userRepository, webSocketManager))
+                val vm: ChatDetailViewModel = viewModel(factory = ChatDetailViewModelFactory(application, chatId, username, chatRepository, userRepository, webSocketManager))
                 ChatDetailScreen(chatId = chatId, username = username, onBackClick = { navController.popBackStack() }, onProfileClick = { userId -> navController.navigate(Routes.profile(userId)) }, viewModel = vm)
             }
         }
