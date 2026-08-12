@@ -83,3 +83,15 @@ class WebSocketManager {
         webSocket?.close(1000, "Usuario desconectado")
     }
 }
+
+// Enviar mensaje al chat global
+fun sendGlobalMessage(content: String) {
+    val message = WsSendMessage(
+        data = MessageData(
+            chatId = "global",
+            content = content,
+            receiverId = ""
+        )
+    )
+    webSocket?.send(gson.toJson(message))
+}

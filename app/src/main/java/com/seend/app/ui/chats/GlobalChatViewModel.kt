@@ -5,10 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
 import com.seend.app.data.model.Message
-import com.seend.app.data.model.MessageStatus
 import com.seend.app.data.model.User
 import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
+import com.seend.app.di.AppModule
 import com.seend.app.util.TokenManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -21,7 +21,8 @@ data class GlobalChatUiState(
     val onlineCount: Int = 0,
     val typingUsers: List<String> = emptyList(),
     val isLoading: Boolean = false,
-    val connectionStatus: String = "Conectado"
+    val hasMore: Boolean = true,
+    val currentOffset: Int = 0
 )
 
 data class GlobalMessage(
@@ -45,6 +46,7 @@ class GlobalChatViewModel(
     val uiState: StateFlow<GlobalChatUiState> = _uiState.asStateFlow()
 
     private val currentUserId = TokenManager.getUserId()
+    private val offset = MutableStateFlow(0)
 
     init {
         observeUsersFromRoom()
@@ -79,16 +81,56 @@ class GlobalChatViewModel(
         )
         _uiState.update { it.copy(messages = it.messages + temp) }
         
-        // Enviar a todos los usuarios (chat global)
-        viewModelScope.launch {
-            _uiState.value.users.forEach { user ->
-                webSocketManager.sendMessage("global", content, user.id)
-            }
-        }
+        webSocketManager.sendGlobalMessage(content)
     }
 
     fun sendTyping(isTyping: Boolean) {
         webSocketManager.sendTyping("global", isTyping)
+    }
+
+    // Cargar más mensajes (paginación)
+    fun loadMoreMessages() {
+        viewModelScope.launch {
+            if (_uiState.value.isLoading || !_uiState.value.hasMore) return@launch
+            _uiState.update { it.copy(isLoading = true) }
+            
+            val nextOffset = offset.value + 20
+            val api = AppModule.provideSeendApi()
+            
+            try {
+                val response = api.getGlobalMessages(nextOffset)
+                if (response.isSuccessful) {
+                    val rows = response.body() ?: emptyList()
+                    if (rows.isEmpty()) {
+                        _uiState.update { it.copy(hasMore = false, isLoading = false) }
+                    } else {
+                        val newMessages = rows.map { row ->
+                            GlobalMessage(
+                                id = row.id,
+                                senderId = row.senderId,
+                                senderName = row.senderName,
+                                senderAvatar = row.senderAvatar,
+                                content = row.content,
+                                createdAt = row.createdAt,
+                                isMine = row.senderId == currentUserId
+                            )
+                        }
+                        _uiState.update {
+                            it.copy(
+                                messages = newMessages + it.messages,
+                                isLoading = false,
+                                currentOffset = nextOffset
+                            )
+                        }
+                        offset.value = nextOffset
+                    }
+                } else {
+                    _uiState.update { it.copy(hasMore = false, isLoading = false) }
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(hasMore = false, isLoading = false) }
+            }
+        }
     }
 
     private fun observeWebSocket() {
@@ -98,12 +140,11 @@ class GlobalChatViewModel(
                     "message" -> {
                         ws.message?.let { msg ->
                             if (msg.chatId == "global") {
-                                val sender = _uiState.value.users.find { it.id == msg.senderId }
                                 val globalMsg = GlobalMessage(
                                     id = msg.id,
                                     senderId = msg.senderId,
-                                    senderName = sender?.username ?: "Usuario",
-                                    senderAvatar = sender?.profilePic ?: "",
+                                    senderName = msg.senderName ?: "Usuario",
+                                    senderAvatar = msg.senderAvatar ?: "",
                                     content = msg.content,
                                     createdAt = msg.createdAt,
                                     isMine = msg.senderId == currentUserId
@@ -139,8 +180,8 @@ class GlobalChatViewModel(
                                         if (user.id == userId) user.copy(isOnline = ws.online ?: false)
                                         else user
                                     },
-                                    onlineCount = state.users.count { 
-                                        if (it.id == userId) ws.online ?: false else it.isOnline 
+                                    onlineCount = state.users.count {
+                                        if (it.id == userId) ws.online ?: false else it.isOnline
                                     }
                                 )
                             }

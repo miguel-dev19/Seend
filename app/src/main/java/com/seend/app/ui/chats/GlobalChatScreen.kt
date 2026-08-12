@@ -118,7 +118,7 @@ fun GlobalChatScreen(
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(uiState.messages) { msg ->
+            items(uiState.messages) { msg -> { msg ->
                 if (msg.isMine) {
                     // Mensaje propio - derecha sin avatar sin nombre
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {

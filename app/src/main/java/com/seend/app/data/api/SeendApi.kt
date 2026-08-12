@@ -6,6 +6,9 @@ import retrofit2.http.*
 
 interface SeendApi {
     
+    @GET("api/global/messages")
+    suspend fun getGlobalMessages(@Query("offset") offset: Int): Response<List<GlobalMessageRow>>
+    
     @GET("api/users")
     suspend fun getUsers(): Response<List<User>>
     
@@ -21,3 +24,12 @@ interface SeendApi {
     @GET("api/chats/{chatId}/messages")
     suspend fun getMessages(@Path("chatId") chatId: String): Response<List<Message>>
 }
+
+data class GlobalMessageRow(
+    val id: String,
+    @SerializedName("sender_id") val senderId: String,
+    val content: String,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("sender_name") val senderName: String,
+    @SerializedName("sender_avatar") val senderAvatar: String
+)
