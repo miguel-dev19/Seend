@@ -24,8 +24,13 @@ import com.seend.app.util.formatLastSeen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String, String) -> Unit, viewModel: UsersViewModel) {
+fun UsersScreen(
+    onBackClick: () -> Unit,
+    onUserClick: (String, String) -> Unit,
+    viewModel: UsersViewModel
+) {
     val uiState by viewModel.uiState.collectAsState()
+    var selectedUsername by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.createdChatId) {
         uiState.createdChatId?.let { chatId ->
@@ -60,8 +65,10 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String, String) -> Unit, 
             LazyColumn(modifier = Modifier.fillMaxSize().padding(padding).background(White)) {
                 items(uiState.users) { user ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().clickable { selectedUsername = user.username
-                            viewModel.createChat(user.id) }.padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            selectedUsername = user.username
+                            viewModel.createChat(user.id)
+                        }.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(modifier = Modifier.size(56.dp)) {
@@ -81,7 +88,7 @@ fun UsersScreen(onBackClick: () -> Unit, onUserClick: (String, String) -> Unit, 
                             Text(
                                 text = when {
                                     user.isOnline -> "En línea"
-                                    user.lastSeen != null -> "Últ. vez ${user.lastSeen!!.formatLastSeen()}"
+                                    user.lastSeen != null -> user.lastSeen!!.formatLastSeen()
                                     else -> ""
                                 },
                                 style = MaterialTheme.typography.bodySmall,
