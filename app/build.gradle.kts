@@ -12,8 +12,8 @@ android {
         applicationId = "com.seend.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 13
-        versionName = "0.13"
+        versionCode = 15
+        versionName = "0.15"
     }
 
     buildTypes {
