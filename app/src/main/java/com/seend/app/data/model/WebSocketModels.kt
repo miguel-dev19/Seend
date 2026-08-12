@@ -8,40 +8,32 @@ data class WsSendMessage(
 )
 
 data class MessageData(
-    @SerializedName("chat_id")
-    val chatId: String,
+    @SerializedName("chat_id") val chatId: String,
     val content: String,
-    @SerializedName("receiver_id")
-    val receiverId: String
+    @SerializedName("receiver_id") val receiverId: String
 )
 
 data class WsReceiveMessage(
     val type: String,
     val message: WsMessage? = null,
-    @SerializedName("chat_id")
-    val chatId: String? = null,
-    @SerializedName("user_id")
-    val userId: String? = null,
+    @SerializedName("chat_id") val chatId: String? = null,
+    @SerializedName("user_id") val userId: String? = null,
     val typing: Boolean? = null,
-    @SerializedName("message_id")
-    val messageId: String? = null,
-    @SerializedName("read_by")
-    val readBy: String? = null,
+    @SerializedName("message_id") val messageId: String? = null,
+    @SerializedName("read_by") val readBy: String? = null,
     val online: Boolean? = null,
-    @SerializedName("last_seen")
-    val lastSeen: String? = null
+    @SerializedName("last_seen") val lastSeen: String? = null
 )
 
 data class WsMessage(
     val id: String,
-    @SerializedName("chat_id")
-    val chatId: String,
-    @SerializedName("sender_id")
-    val senderId: String,
+    @SerializedName("chat_id") val chatId: String,
+    @SerializedName("sender_id") val senderId: String,
     val content: String,
     val status: String,
-    @SerializedName("created_at")
-    val createdAt: String
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("sender_name") val senderName: String? = null,
+    @SerializedName("sender_avatar") val senderAvatar: String? = null
 )
 
 data class WsTyping(
@@ -50,10 +42,8 @@ data class WsTyping(
 )
 
 data class TypingData(
-    @SerializedName("chat_id")
-    val chatId: String,
-    @SerializedName("is_typing")
-    val isTyping: Boolean
+    @SerializedName("chat_id") val chatId: String,
+    @SerializedName("is_typing") val isTyping: Boolean
 )
 
 data class WsReadReceipt(
@@ -62,8 +52,6 @@ data class WsReadReceipt(
 )
 
 data class ReadData(
-    @SerializedName("chat_id")
-    val chatId: String,
-    @SerializedName("message_id")
-    val messageId: String
+    @SerializedName("chat_id") val chatId: String,
+    @SerializedName("message_id") val messageId: String
 )

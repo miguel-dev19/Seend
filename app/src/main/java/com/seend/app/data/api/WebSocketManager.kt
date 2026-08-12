@@ -50,31 +50,28 @@ class WebSocketManager {
     
     fun sendMessage(chatId: String, content: String, receiverId: String) {
         val message = WsSendMessage(
-            data = MessageData(
-                chatId = chatId,
-                content = content,
-                receiverId = receiverId
-            )
+            data = MessageData(chatId = chatId, content = content, receiverId = receiverId)
+        )
+        webSocket?.send(gson.toJson(message))
+    }
+    
+    fun sendGlobalMessage(content: String) {
+        val message = WsSendMessage(
+            data = MessageData(chatId = "global", content = content, receiverId = "")
         )
         webSocket?.send(gson.toJson(message))
     }
     
     fun sendTyping(chatId: String, isTyping: Boolean) {
         val typing = WsTyping(
-            data = TypingData(
-                chatId = chatId,
-                isTyping = isTyping
-            )
+            data = TypingData(chatId = chatId, isTyping = isTyping)
         )
         webSocket?.send(gson.toJson(typing))
     }
     
     fun sendReadReceipt(chatId: String, messageId: String) {
         val readReceipt = WsReadReceipt(
-            data = ReadData(
-                chatId = chatId,
-                messageId = messageId
-            )
+            data = ReadData(chatId = chatId, messageId = messageId)
         )
         webSocket?.send(gson.toJson(readReceipt))
     }
@@ -82,16 +79,4 @@ class WebSocketManager {
     fun disconnect() {
         webSocket?.close(1000, "Usuario desconectado")
     }
-}
-
-// Enviar mensaje al chat global
-fun sendGlobalMessage(content: String) {
-    val message = WsSendMessage(
-        data = MessageData(
-            chatId = "global",
-            content = content,
-            receiverId = ""
-        )
-    )
-    webSocket?.send(gson.toJson(message))
 }

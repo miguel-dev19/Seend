@@ -95,7 +95,7 @@ class GlobalChatViewModel(
             _uiState.update { it.copy(isLoading = true) }
             
             val nextOffset = offset.value + 20
-            val api = AppModule.provideSeendApi()
+            val api = com.seend.app.di.AppModule.provideSeendApi()
             
             try {
                 val response = api.getGlobalMessages(nextOffset)
@@ -108,8 +108,8 @@ class GlobalChatViewModel(
                             GlobalMessage(
                                 id = row.id,
                                 senderId = row.senderId,
-                                senderName = row.senderName,
-                                senderAvatar = row.senderAvatar,
+                                senderName = row.username,
+                                senderAvatar = row.profilePic,
                                 content = row.content,
                                 createdAt = row.createdAt,
                                 isMine = row.senderId == currentUserId
