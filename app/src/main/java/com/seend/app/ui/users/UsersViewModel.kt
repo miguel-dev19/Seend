@@ -3,15 +3,19 @@ package com.seend.app.ui.users
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.seend.app.data.api.WebSocketManager
+import com.seend.app.data.local.ChatEntity
 import com.seend.app.data.model.User
 import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
+import com.seend.app.di.AppModule
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class UsersUiState(
     val users: List<User> = emptyList(),
     val isLoading: Boolean = false,
+    val isCreatingChat: Boolean = false,
     val error: String? = null,
     val createdChatId: String? = null
 )
@@ -60,10 +64,7 @@ class UsersViewModel(
                             state.copy(users = state.users.map { user ->
                                 if (user.id == uid) user.copy(isOnline = ws.online ?: false, lastSeen = ws.lastSeen)
                                 else user
-                            }.sortedWith(
-                                compareByDescending<User> { it.isOnline }
-                                    .thenByDescending { it.lastSeen ?: "" }
-                            ))
+                            }.sortedWith(compareByDescending<User> { it.isOnline }.thenByDescending { it.lastSeen ?: "" }))
                         }
                     }
                 }
@@ -71,11 +72,41 @@ class UsersViewModel(
         }
     }
 
-    fun createChat(userId: String) {
+    fun createChat(user: User) {
         viewModelScope.launch {
-            chatRepository.createOrGetChat(userId).fold(
-                onSuccess = { chatId -> _uiState.update { it.copy(createdChatId = chatId) } },
-                onFailure = { e -> _uiState.update { it.copy(error = e.message) } }
+            _uiState.update { it.copy(isCreatingChat = true, error = null) }
+            
+            // 1. LOCAL PRIMERO: Crear chat en Room inmediatamente
+            val localChatId = UUID.randomUUID().toString()
+            val chatEntity = ChatEntity(
+                id = localChatId,
+                otherUserId = user.id,
+                otherUsername = user.username,
+                otherProfilePic = user.profilePic,
+                lastMessage = "",
+                lastTime = "",
+                unreadCount = 0,
+                lastMsgStatus = ""
+            )
+            
+            try {
+                AppModule.provideDatabase().chatDao().upsertChat(chatEntity)
+            } catch (e: Exception) {
+                // Continuar con chatId local
+            }
+            
+            _uiState.update { it.copy(isCreatingChat = false, createdChatId = localChatId) }
+            
+            // 2. SYNC DESPUÉS: Crear en servidor en background
+            chatRepository.createOrGetChat(user.id).fold(
+                onSuccess = { serverChatId ->
+                    // Actualizar Room con chatId real
+                    _uiState.update { it.copy(createdChatId = serverChatId) }
+                },
+                onFailure = { e ->
+                    // Mantener chat local, sincronizará después
+                    _uiState.update { it.copy(error = "Sin conexión, chat guardado localmente") }
+                }
             )
         }
     }

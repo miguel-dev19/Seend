@@ -14,6 +14,7 @@ import com.seend.app.data.repository.ChatRepository
 import com.seend.app.data.repository.UserRepository
 import com.seend.app.di.AppModule
 import com.seend.app.util.TokenManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -52,10 +53,9 @@ class ChatDetailViewModel(
         syncOtherUserProfile()
         observeWebSocket()
         observePendingCount()
-        monitorNetwork()
+        monitorNetworkAndResend()
     }
 
-    // Flow: mensajes desde Room
     private fun observeMessagesFromRoom() {
         viewModelScope.launch {
             chatRepository.getMessagesFlow(chatId).collect { messages ->
@@ -64,7 +64,6 @@ class ChatDetailViewModel(
         }
     }
 
-    // Flow: observar perfil del otro usuario desde Room
     private fun observeOtherUserFromRoom() {
         viewModelScope.launch {
             userRepository.getUsersFlow().collect { users ->
@@ -84,7 +83,6 @@ class ChatDetailViewModel(
         }
     }
 
-    // Sincronizar perfil del otro usuario con servidor
     private fun syncOtherUserProfile() {
         viewModelScope.launch {
             _uiState.value.otherUser?.let { user ->
@@ -104,14 +102,34 @@ class ChatDetailViewModel(
         }
     }
 
-    private fun monitorNetwork() {
+    // Monitorear red + reenviar pendientes al conectar
+    private fun monitorNetworkAndResend() {
         networkMonitor.startMonitoring()
         viewModelScope.launch {
             networkMonitor.networkChangeFlow.collect { event ->
-                _uiState.update { it.copy(
-                    connectionStatus = if (!event.isAvailable) "Esperando red..." else "Conectado"
-                )}
+                if (!event.isAvailable) {
+                    _uiState.update { it.copy(connectionStatus = "Esperando red...") }
+                } else {
+                    _uiState.update { it.copy(connectionStatus = "Conectado") }
+                    // ¡REENVIAR PENDIENTES AL RECUPERAR CONEXIÓN!
+                    resendPendingMessages()
+                }
             }
+        }
+    }
+
+    // Reenviar mensajes pendientes de la cola offline
+    private fun resendPendingMessages() {
+        viewModelScope.launch {
+            val pending = offlineQueue.getPending()
+            pending.forEach { offlineMsg ->
+                if (offlineMsg.chatId == chatId || offlineMsg.receiverId == _uiState.value.otherUser?.id) {
+                    webSocketManager.sendMessage(offlineMsg.chatId, offlineMsg.content, offlineMsg.receiverId)
+                    offlineQueue.markAsSent(offlineMsg.id)
+                }
+            }
+            // Limpiar enviados
+            offlineQueue.clearSent()
         }
     }
 
@@ -124,9 +142,13 @@ class ChatDetailViewModel(
             createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
         )
         _uiState.update { it.copy(messages = it.messages + tempMessage) }
+        
+        // LOCAL PRIMERO: Guardar en cola offline
         viewModelScope.launch {
             offlineQueue.insert(OfflineMessage(chatId = chatId, receiverId = receiverId, content = content))
         }
+        
+        // SYNC DESPUÉS: Enviar por WebSocket
         if (receiverId.isNotEmpty()) {
             webSocketManager.sendMessage(chatId, content, receiverId)
         }

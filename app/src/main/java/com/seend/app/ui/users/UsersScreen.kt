@@ -67,7 +67,7 @@ fun UsersScreen(
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable {
                             selectedUsername = user.username
-                            viewModel.createChat(user.id)
+                            viewModel.createChat(user)
                         }.padding(horizontal = 16.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
