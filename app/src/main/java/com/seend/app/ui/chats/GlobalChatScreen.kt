@@ -25,9 +25,7 @@ import com.seend.app.util.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GlobalChatScreen(
-    viewModel: GlobalChatViewModel
-) {
+fun GlobalChatScreen(viewModel: GlobalChatViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     var messageText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -46,17 +44,10 @@ fun GlobalChatScreen(
                             Text("Seend Global", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Black)
                             Text(
                                 "${uiState.users.size} usuarios, ${uiState.onlineCount} en línea",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Gray,
-                                fontSize = 12.sp
+                                style = MaterialTheme.typography.bodySmall, color = Gray, fontSize = 12.sp
                             )
                             if (typingText.isNotEmpty()) {
-                                Text(
-                                    typingText,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = PrimaryBlue,
-                                    fontSize = 11.sp
-                                )
+                                Text(typingText, style = MaterialTheme.typography.bodySmall, color = PrimaryBlue, fontSize = 11.sp)
                             }
                         }
                     },
@@ -118,9 +109,8 @@ fun GlobalChatScreen(
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(uiState.messages) { msg -> { msg ->
+            items(uiState.messages) { msg ->
                 if (msg.isMine) {
-                    // Mensaje propio - derecha sin avatar sin nombre
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         Surface(
                             shape = RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp),
@@ -141,9 +131,7 @@ fun GlobalChatScreen(
                         }
                     }
                 } else {
-                    // Mensaje recibido - avatar izquierda + nombre dentro de burbuja
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                        // Avatar
                         Box(modifier = Modifier.size(28.dp)) {
                             if (msg.senderAvatar.isNotEmpty()) {
                                 AsyncImage(
