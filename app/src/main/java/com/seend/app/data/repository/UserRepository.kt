@@ -14,14 +14,12 @@ class UserRepository(
     private val db: SeendDatabase
 ) {
     
-    // Flow desde Room: la UI se actualiza automáticamente
     fun getUsersFlow(): Flow<List<User>> {
         return db.userDao().getAllUsersFlow().map { entities ->
             entities.map { it.toModel() }
         }
     }
     
-    // Sincronizar con servidor en background
     suspend fun syncUsers(): Result<List<User>> {
         return withContext(Dispatchers.IO) {
             try {
@@ -49,20 +47,15 @@ class UserRepository(
                     db.userDao().upsertUser(user.toEntity())
                     Result.success(user)
                 } else {
-                    loadLocalUser(userId)
+                    val local = db.userDao().getUserById(userId)
+                    if (local != null) Result.success(local.toModel())
+                    else Result.failure(Exception("Usuario no encontrado"))
                 }
             } catch (e: Exception) {
-                loadLocalUser(userId)
+                val local = db.userDao().getUserById(userId)
+                if (local != null) Result.success(local.toModel())
+                else Result.failure(e)
             }
-        }
-    }
-    
-    private suspend fun loadLocalUser(userId: String): Result<User> {
-        val local = db.userDao().getUserById(userId)
-        return if (local != null) {
-            Result.success(local.toModel())
-        } else {
-            Result.failure(Exception("Usuario no encontrado"))
         }
     }
 }
